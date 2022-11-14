@@ -3,7 +3,9 @@
 The first thing to do is to clone the repository:
 
 ```sh
+$ mkdir <folder name>
 $ cd <folder name>
+$ git clone https://github.com/krysmeister/dawnbringer.git
 ```
 
 Create a virtual environment to install dependencies in and activate it:
