@@ -25,6 +25,7 @@ $ deactivate
 Then install the dependencies:
 
 ```sh
+(env)$ cd dawnbringer
 (env)$ pip install -r requirements.txt
 ```
 Note the `(env)` in front of the prompt. This indicates that this terminal
@@ -34,10 +35,8 @@ indicate the name of <venv name>
 Once `pip` has finished downloading the dependencies:
 
 ```sh
-(env)$ cd dawnbringer
 (env)$ python manage.py makemigrations
 (env)$ python manage.py migrate
-(env)$ python manage.py runserver
 ```
 
 After the creation of the migration scripts:
