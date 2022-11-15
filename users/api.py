@@ -14,8 +14,8 @@ class CheckUsernameView(views.APIView):
     def post(self, request, *args, **kwargs):
         username = request.data.get("username")
         try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
             return Response(data={"message": "Username available."}, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -32,8 +32,8 @@ class ChangeUsernameView(views.APIView):
         userId = request.data.get("user_id")
 
         try:
-            user = CustomUser.objects.get(username=username)
-        except CustomUser.DoesNotExist:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
             return Response(data={"message": "Username available."}, status=status.HTTP_200_OK)
         else:
             if str(user.pk) != userId:
@@ -56,8 +56,8 @@ class CheckEmailAddressView(views.APIView):
         try:
             validate_email(email_address)
             try:
-                user = CustomUser.objects.get(email_address=email_address)
-            except CustomUser.DoesNotExist:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
                 return Response(
                     data={"message": "Email Address available"},
                     status=status.HTTP_200_OK,
@@ -84,8 +84,8 @@ class ChangeEmailAddressView(views.APIView):
         try:
             validate_email(email_address)
             try:
-                user = CustomUser.objects.get(email_address=email_address)
-            except CustomUser.DoesNotExist:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
                 return Response(
                     data={"message": "Email Address Available"},
                     status=status.HTTP_200_OK,
@@ -109,11 +109,11 @@ class ChangeEmailAddressView(views.APIView):
 
 
 class ChangePassword(views.APIView):
-    model = CustomUser
+    model = User
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, request, queryset=None):
-        user = CustomUser.objects.get(id=request)
+        user = User.objects.get(id=request)
         return user
 
     def post(self, request, *args, **kwargs):
@@ -141,11 +141,11 @@ class ChangePassword(views.APIView):
 
 
 class ResetPassword(views.APIView):
-    model = CustomUser
+    model = User
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self, request, queryset=None):
-        user = CustomUser.objects.get(id=request)
+        user = User.objects.get(id=request)
         return user
 
     def post(self, request, *args, **kwargs):
@@ -183,13 +183,13 @@ class PasswordValidation(views.APIView):
 
 
 # class UserAccountViewSet(ModelViewSet):
-#     queryset = CustomUser.objects.all()
+#     queryset = User.objects.all()
 #     serializer_class = UserAccountSerializer
 #     permission_classes = (permissions.IsAuthenticated,)
 #     http_method_names = ["get"]
 
 #     def get_queryset(self):
-#         queryset = CustomUser.objects.exclude(is_active=False)
+#         queryset = User.objects.exclude(is_active=False)
 #         user = self.request.user.id
 
 #         if user is not None:
@@ -213,13 +213,13 @@ class PasswordValidation(views.APIView):
 
 
 class UserViewSet(ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = CustomUser.objects.exclude(is_active=False)
+        queryset = User.objects.exclude(is_active=False)
         if self.request.user.is_authenticated:
             queryset = queryset.filter(id=self.request.user.pk).exclude(is_active=False)
 

@@ -1,18 +1,11 @@
 from django.urls import path
-from vanguard.api import (
-    AdminLoginView,
-    LogoutView,
-    MemberLoginView,
-    WhichUserView,
-    WhoAmIMemberView,
-    WhoAmIAdminView,
-)
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from vanguard.api import WhoAmIView, AuthLoginView, LogoutView
 
 urlpatterns = [
-    path("admin/", AdminLoginView.as_view()),
-    path("member/", MemberLoginView.as_view()),
+    path("login/", AuthLoginView.as_view()),
+    path("whoami/", WhoAmIView.as_view()),
     path("logout/", LogoutView.as_view()),
-    path("whoamimember/", WhoAmIMemberView.as_view()),
-    path("whoamiadmin/", WhoAmIAdminView.as_view()),
-    path("whichuser/", WhichUserView.as_view()),
+    path("auth/obtain/", TokenObtainPairView.as_view()),
+    path("auth/refresh/", TokenRefreshView.as_view()),
 ]

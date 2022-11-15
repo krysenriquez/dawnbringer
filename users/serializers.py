@@ -11,7 +11,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     user = serializers.IntegerField(required=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = "__all__"
 
     def validate_new_password(self, value):
@@ -25,7 +25,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     user = serializers.IntegerField(required=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = "__all__"
 
     def validate_new_password(self, value):
@@ -67,7 +67,7 @@ class UserLogsSerializer(ModelSerializer):
 
 class UserSerializer(ModelSerializer):
     def create(self, validated_data):
-        user = CustomUser.objects.create(**validated_data)
+        user = User.objects.create(**validated_data)
         user.set_password(validated_data["password"])
         user.save()
         return user
@@ -83,7 +83,7 @@ class UserSerializer(ModelSerializer):
         return instance
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = [
             "username",
             "email_address",
@@ -95,5 +95,5 @@ class UserSerializer(ModelSerializer):
 #     remaining = serializers.IntegerField(required=False)
 
 #     class Meta:
-#         model = CustomUser
+#         model = User
 #         fields = ["account_user", "remaining"]

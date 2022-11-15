@@ -4,7 +4,7 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
-from .models import *
+from users.models import *
 
 
 class UserCreationForm(forms.ModelForm):
@@ -12,7 +12,7 @@ class UserCreationForm(forms.ModelForm):
     password_confirm = forms.CharField(label="Password confirmation", widget=forms.PasswordInput)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ("username", "email_address")
 
     def clean_password2(self):
@@ -42,7 +42,7 @@ class UserChangeForm(forms.ModelForm):
     )
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ("username", "email_address", "password", "user_type", "is_active")
 
     def clean_password(self):
@@ -52,7 +52,7 @@ class UserChangeForm(forms.ModelForm):
 class UserAdmin(BaseUserAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
-    model = CustomUser
+    model = User
 
     list_display = ("username", "display_name", "email_address", "is_active", "is_staff", "is_superuser")
     list_filter = ("is_staff", "is_active", "user_type")
@@ -101,5 +101,5 @@ class UserAdmin(BaseUserAdmin):
 users_models = [UserLogs, LogDetails]
 admin.site.register(LogEntry)
 admin.site.unregister(Group)
-admin.site.register(CustomUser, UserAdmin)
+admin.site.register(User, UserAdmin)
 admin.site.register(users_models)

@@ -12,10 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from users.enums import UserType
 
 
-def user_directory_path(instance, filename):
-    return "user_{0}/{1}".format(instance.user.id, filename)
-
-
 class UserManager(BaseUserManager):
     def _create_user(self, username, email_address, password, **extra_fields):
         if not email_address and not username:
@@ -28,10 +24,6 @@ class UserManager(BaseUserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
-
-    def create_user(self, username, email_address, password=None, **extra_fields):
-        extra_fields.setdefault("is_superuser", False)
-        return self._create_user(username, email_address, password, **extra_fields)
 
     def create_superuser(self, username, email_address, password, **extra_fields):
         extra_fields.setdefault("is_staff", True)
@@ -49,8 +41,30 @@ class UserManager(BaseUserManager):
 
         return self._create_user(username, email_address, password, **extra_fields)
 
+    def create_staffuser(self, username, email_address, password, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("user_type", UserType.STAFF)
 
-class CustomUser(AbstractUser):
+        email_address = self.normalize_email(email_address)
+        username = self.model.normalize_username(username)
+
+        return self._create_user(username, email_address, password, **extra_fields)
+
+    def create_memberuser(self, username, email_address, password, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("user_type", UserType.MEMBER)
+
+        email_address = self.normalize_email(email_address)
+        username = self.model.normalize_username(username)
+
+        return self._create_user(username, email_address, password, **extra_fields)
+
+
+class User(AbstractUser):
     user_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     username = models.CharField(
         unique=True,
@@ -101,7 +115,7 @@ class CustomUser(AbstractUser):
 
 
 class UserLogs(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="userLogs")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="userLogs")
     action_type = models.CharField(max_length=255, blank=True, null=True)
     content_type = models.ForeignKey(
         ContentType,
