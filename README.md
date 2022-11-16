@@ -1,4 +1,4 @@
-## Setup
+## Setup HI
 
 The first thing to do is to clone the repository:
 
@@ -28,6 +28,7 @@ Then install the dependencies:
 (env)$ cd dawnbringer
 (env)$ pip install -r requirements.txt
 ```
+
 Note the `(env)` in front of the prompt. This indicates that this terminal
 session operates in a virtual environment set up by `virtualenv`. This should
 indicate the name of <venv name>
@@ -47,6 +48,7 @@ After the creation of the migration scripts:
 ```
 
 To run the Django Server:
+
 ```sh
 (env)$ python manage.py runserver
 ```
