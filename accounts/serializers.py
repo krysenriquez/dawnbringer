@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from dawnbringer.accounts.models import *
+from accounts.models import Account, PersonalInfo, ContactInfo, AddressInfo, AvatarInfo, Code
 
 
 class PersonalInfoSerializer(ModelSerializer):
@@ -241,6 +241,7 @@ class AccountListSerializer(ModelSerializer):
             "created",
         ]
 
+
 class AvatarInfoSerializer(ModelSerializer):
     class Meta:
         model = AvatarInfo
@@ -258,7 +259,6 @@ class AccountAvatarSerializer(ModelSerializer):
 
 
 class CodeSerializer(ModelSerializer):
-
     class Meta:
         model = Code
         fields = ["code", "status"]

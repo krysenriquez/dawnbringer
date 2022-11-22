@@ -7,6 +7,7 @@ from users.enums import UserType
 class IsDeveloperUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
         if request.user.user_type == UserType.DEVELOPER:
+            print()
             return bool(request.user and request.user.user_type == UserType.DEVELOPER)
         return False
 

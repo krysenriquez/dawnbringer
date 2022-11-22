@@ -115,12 +115,12 @@ class User(AbstractUser):
 
 
 class UserLogs(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="userLogs")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_logs")
     action_type = models.CharField(max_length=255, blank=True, null=True)
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
-        related_name="account_content_type",
+        related_name="user_logs_content_type",
         blank=True,
         null=True,
     )
@@ -137,12 +137,12 @@ class UserLogs(models.Model):
         blank=True,
         null=True,
     )
-    apiLink = models.CharField(
+    api_link = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    valueToDisplay = models.CharField(
+    value_to_display = models.CharField(
         max_length=255,
         blank=True,
         null=True,
@@ -161,10 +161,16 @@ class UserLogs(models.Model):
 
 
 class LogDetails(models.Model):
-    logDetails = models.ForeignKey(UserLogs, on_delete=models.CASCADE, related_name="logDetails")
+    user_logs = models.ForeignKey(
+        UserLogs,
+        on_delete=models.CASCADE,
+        related_name="log_details",
+        blank=True,
+        null=True,
+    )
     action = models.CharField(
         max_length=255,
     )
 
     def __str__(self):
-        return "%s - %s" % (self.logDetails, self.action)
+        return "%s - %s" % (self.user_logs, self.action)

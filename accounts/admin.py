@@ -1,5 +1,5 @@
 from django.contrib import admin
-from dawnbringer.accounts.models import *
+from accounts.models import Account, PersonalInfo, ContactInfo, AddressInfo, AvatarInfo, Code
 
 
 class AccountAdmin(admin.ModelAdmin):
@@ -11,8 +11,6 @@ class AccountAdmin(admin.ModelAdmin):
         "account_status",
         "user",
         "parent",
-        "referrer",
-        "activation_code",
         "created",
     )
 
@@ -26,7 +24,6 @@ class AccountAdmin(admin.ModelAdmin):
 class CodeAdmin(admin.ModelAdmin):
     list_display = (
         "code",
-        "code_type",
         "status",
         "account",
         "created_by",
@@ -34,7 +31,6 @@ class CodeAdmin(admin.ModelAdmin):
         "modified",
     )
     search_fields = ("account",)
-    list_filter = ("code_type",)
     ordering = (
         "modified",
         "created",

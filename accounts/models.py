@@ -1,26 +1,21 @@
 import uuid
 from django.db import models
-from dawnbringer.accounts.enums import AccountStatus, CodeStatus, Gender
+from accounts.enums import AccountStatus, CodeStatus, Gender
 
 
 def account_avatar_directory(instance, filename):
     return "accounts/{0}/avatar/{1}".format(instance.account.account_id, filename)
 
+
 def account_code_directory(instance, filename):
     return "accounts/{0}/code/".format(instance.account.account_id)
+
 
 class Account(models.Model):
     account_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     parent = models.ForeignKey(
         "self",
         related_name="children",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-    )
-    activation_code = models.ForeignKey(
-        "accounts.Code",
-        related_name="account_activated",
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
@@ -40,14 +35,14 @@ class Account(models.Model):
     user = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="account_user",
+        related_name="user",
         null=True,
         blank=True,
     )
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="account_created",
+        related_name="account_created_by",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -170,7 +165,7 @@ class Code(models.Model):
     )
     code_attachment = models.ImageField(blank=True, upload_to=account_code_directory)
     created_by = models.ForeignKey(
-        "users.CustomUser",
+        "users.User",
         on_delete=models.SET_NULL,
         related_name="code_created_by",
         null=True,

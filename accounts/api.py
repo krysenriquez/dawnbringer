@@ -1,9 +1,12 @@
 from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
-from dawnbringer.accounts.serializers import *
-from dawnbringer.accounts.models import *
-from dawnbringer.accounts.enums import *
+from accounts.models import Account
+from accounts.serializers import (
+    AccountSerializer,
+    AccountProfileSerializer,
+    AccountListSerializer,
+)
 from users.enums import UserType
 
 
@@ -35,6 +38,7 @@ class AccountListViewSet(ModelViewSet):
         else:
             return Account.objects.none()
 
+
 class CreateAccountView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -50,6 +54,7 @@ class CreateAccountView(views.APIView):
                 data={"message": "Unable to create Account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
 
 class VerifyAccountView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)

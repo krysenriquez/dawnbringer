@@ -1,5 +1,10 @@
 from rest_framework.routers import DefaultRouter
-from dawnbringer.accounts.api import *
+from accounts.api import (
+    AccountProfileViewSet,
+    AccountListViewSet,
+    CreateAccountView,
+    VerifyAccountView,
+)
 from django.urls import path
 
 router = DefaultRouter()

@@ -3,17 +3,18 @@ from django.utils.translation import gettext_lazy as _
 
 
 class AccountStatus(models.TextChoices):
-    DRAFT = "Draft", _("Draft")
-    PENDING = "Pending", _("Pending")
-    ACTIVE = "Active", _("Active")
-    DEACTIVATED = "Deactivated", _("Deactivated")
-    CLOSED = "Closed", _("Closed")
+    DRAFT = "DRAFT", _("Draft")
+    PENDING = "PENDING", _("Pending")
+    ACTIVE = "ACTIVE", _("Active")
+    DEACTIVATED = "DEACTIVATED", _("Deactivated")
+    CLOSED = "CLOSED", _("Closed")
+
 
 class Gender(models.TextChoices):
-    MALE = "Male", _("Male")
-    FEMALE = "Female", _("Female")
+    MALE = "MALE", _("Male")
+    FEMALE = "FEMALE", _("Female")
+
 
 class CodeStatus(models.TextChoices):
-    ACTIVE = "Active", _("Active")
-    DEACTIVATED = "Deactivated", _("Deactivated")
-
+    ACTIVE = "ACTIVE", _("Active")
+    DEACTIVATED = "DEACTIVATED", _("Deactivated")
