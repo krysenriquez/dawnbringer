@@ -1,3 +1,5 @@
 from django.contrib import admin
+from shop.models import PageContent, PageComponent
 
-# Register your models here.
+admin.site.register(PageContent)
+admin.site.register(PageComponent)

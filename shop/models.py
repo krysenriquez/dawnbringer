@@ -2,53 +2,52 @@ from django.db import models
 
 
 class PageContent(models.Model):
-    internalName = models.CharField(
+    internal_name = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    pageTitle = models.CharField(
+    page_title = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    pageSlug = models.CharField(
+    page_slug = models.SlugField(
         max_length=255,
         blank=True,
         null=True,
     )
-    pageContent = models.TextField(
+    page_content = models.TextField(
         max_length=255,
         blank=True,
         null=True,
     )
-    isHome = models.BooleanField(default=False)
-    metaDescription = models.CharField(
+    is_home = models.BooleanField(default=False)
+    meta_description = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    metaRobots = models.CharField(
+    meta_robots = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    metaKeywords = models.CharField(
+    meta_keywords = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    otherMetaData = models.CharField(
+    other_meta_data = models.TextField(
         max_length=255,
         blank=True,
         null=True,
     )
-    isPublished = models.BooleanField(default=False)
+    is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
-
     def __str__(self):
-        return "%s - %s : %s" % (self.internalName, self.pageTitle, self.isPublished)
+        return "%s - %s : %s" % (self.internal_name, self.page_title, self.is_published)
 
 
 class PageComponent(models.Model):
@@ -62,8 +61,8 @@ class PageComponent(models.Model):
         blank=True,
         null=True,
     )
-    isPublished = models.BooleanField(default=False)
+    is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
-        return "%s : %s" % (self.name, self.isPublished)
+        return "%s : %s" % (self.name, self.is_published)
