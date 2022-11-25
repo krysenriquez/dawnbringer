@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "settings",
     "accounts",
     "products",
+    "shop",
 ]
 
 MIDDLEWARE = [
