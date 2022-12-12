@@ -6,7 +6,9 @@ from products.api import (
     ProductInfoViewSet,
     ProductVariantInfoViewSet,
     OrdersListViewSet,
+    CreateOrderView,
 )
+from django.urls import path
 
 router = DefaultRouter()
 router.register(r"getproducttypes", ProductTypesViewSet)
@@ -17,6 +19,8 @@ router.register(r"getproductvariant", ProductVariantInfoViewSet)
 
 router.register(r"getorders", OrdersListViewSet)
 
-urlpatterns = []
+urlpatterns = [
+    path("createorder/", CreateOrderView.as_view()),
+]
 
 urlpatterns += router.urls

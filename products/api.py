@@ -1,7 +1,10 @@
+from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 from products.models import ProductType, Product, ProductVariant, Order
 from products.serializers import (
+    CreateOrderSerializer,
     ProductTypesSerializer,
     ProductsListSerializer,
     ProductVariantsListSerializer,
@@ -9,6 +12,7 @@ from products.serializers import (
     ProductVariantInfoSerializer,
     OrdersSerializer,
 )
+from products.services import get_or_create_customer, process_order_request
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
 
@@ -102,3 +106,23 @@ class OrdersListViewSet(ModelViewSet):
             queryset = queryset.filter(id=id)
 
         return queryset
+
+
+# POST Views
+class CreateOrderView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        customer = get_or_create_customer(request)
+        if customer:
+            process_request = process_order_request(request, customer)
+            serializer = CreateOrderSerializer(data=process_request)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(data={"message": "Order created."}, status=status.HTTP_201_CREATED)
+            else:
+                print(serializer.errors)
+                return Response(
+                    data={"message": "Unable to create Order."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )

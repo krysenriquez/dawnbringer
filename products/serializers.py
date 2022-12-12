@@ -332,3 +332,33 @@ class OrdersSerializer(ModelSerializer):
     class Meta:
         model = Order
         fields = ["total_amount", "total_discount", "total_fees", "order_amount", "details", "fees", "customer"]
+
+
+class CreateOrderSerializer(ModelSerializer):
+    details = OrderDetailsSerializer(many=True, required=False)
+    fees = OrderFeesSerializer(many=True, required=False)
+
+    class Meta:
+        model = Order
+        fields = [
+            "total_amount",
+            "total_discount",
+            "total_fees",
+            "order_amount",
+            "details",
+            "fees",
+            "customer",
+            "account",
+        ]
+
+    def create(self, validated_data):
+        details = validated_data.pop("details")
+        fees = validated_data.pop("fees")
+        order = Order.objects.create(**validated_data)
+        for detail in details:
+            OrderDetail.objects.create(**detail, order=order)
+
+        for fee in fees:
+            OrderFee.objects.create(**fee, order=order)
+
+        return order
