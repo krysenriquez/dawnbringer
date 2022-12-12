@@ -8,7 +8,7 @@ def account_avatar_directory(instance, filename):
 
 
 def account_code_directory(instance, filename):
-    return "accounts/{0}/code/".format(instance.account.account_id)
+    return "accounts/{0}/code/{1}".format(instance.account.account_id, filename)
 
 
 class Account(models.Model):

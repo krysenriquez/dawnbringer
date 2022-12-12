@@ -107,6 +107,9 @@ class User(AbstractUser):
     def has_module_perms(self, app_label):
         return True
 
+    def get_display_name(self):
+        return self.display_name
+
     def get_all_user_accounts(self):
         accounts = []
         for account in self.account_user.all():
