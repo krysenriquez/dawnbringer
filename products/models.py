@@ -1,6 +1,10 @@
 import uuid
 from django.db import models
-from products.enums import AddressType, Status
+from products.enums import AddressType, OrderType, PaymentMethods, Status, OrderStatus
+
+
+def order_attachments_directory(instance, filename):
+    return "orders/{0}/attachments/{1}".format(instance.id, filename)
 
 
 def product_image_directory(instance, filename):
@@ -408,6 +412,16 @@ class Order(models.Model):
     order_amount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
+    payment_method = models.CharField(
+        max_length=30,
+        choices=PaymentMethods.choices,
+        default=PaymentMethods.BANK_TRANSFER,
+    )
+    order_type = models.CharField(
+        max_length=30,
+        choices=OrderType.choices,
+        default=OrderType.DELIVERY,
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -417,6 +431,28 @@ class Order(models.Model):
             self.total_discount,
             self.total_fees,
         )
+
+    def get_order_number(self):
+        return str(self.id).zfill(6)
+
+    def get_last_order_status(self):
+        try:
+            return self.histories.latest("created").order_status
+        except:
+            return None
+
+    def get_last_order_stage(self):
+        match self.histories.latest("created").order_status:
+            case OrderStatus.PENDING:
+                return 1
+            case OrderStatus.AWAITING_DELIVERY | OrderStatus.AWAITING_PICKUP:
+                return 2
+            case OrderStatus.ON_DELIVERY:
+                return 3
+            case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
+                return 4
+            case _:
+                None
 
 
 class OrderDetail(models.Model):
@@ -437,6 +473,9 @@ class OrderDetail(models.Model):
         blank=True,
     )
     amount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
+    total_amount = models.DecimalField(
+        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
+    )
     discount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
@@ -468,3 +507,47 @@ class OrderFee(models.Model):
             self.fee_type,
             self.amount,
         )
+
+
+class OrderAttachments(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        related_name="attachments",
+        null=True,
+    )
+    attachment = models.ImageField(blank=True, upload_to=order_attachments_directory)
+
+
+class OrderHistory(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        related_name="histories",
+        null=True,
+    )
+    order_status = models.CharField(
+        max_length=30,
+        choices=OrderStatus.choices,
+        default=OrderStatus.PENDING,
+    )
+    comment = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.order, self.order_status)
+
+    def get_order_status_stage(self):
+        match self.order_status:
+            case OrderStatus.PENDING:
+                return 1
+            case OrderStatus.AWAITING_DELIVERY | OrderStatus.AWAITING_PICKUP:
+                return 2
+            case OrderStatus.ON_DELIVERY:
+                return 3
+            case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
+                return 4

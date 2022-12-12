@@ -1,10 +1,12 @@
+from django.db.models import Prefetch
 from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from products.models import ProductType, Product, ProductVariant, Order
+from products.models import ProductType, Product, ProductVariant, Order, OrderHistory
 from products.serializers import (
     CreateOrderSerializer,
+    OrderListSerializer,
     ProductTypesSerializer,
     ProductsListSerializer,
     ProductVariantsListSerializer,
@@ -92,20 +94,32 @@ class ProductVariantInfoViewSet(ModelViewSet):
             return queryset
 
 
-class OrdersListViewSet(ModelViewSet):
+class OrdersViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrdersSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        id = self.request.query_params.get("id", None)
+        order_id = self.request.query_params.get("order_id", None)
 
-        queryset = Order.objects.all()
-        if id:
-            queryset = queryset.filter(id=id)
+        queryset = Order.objects.prefetch_related(
+            Prefetch("histories", queryset=OrderHistory.objects.order_by("-id"))
+        ).all()
+        if order_id:
+            queryset = queryset.filter(id=order_id.lstrip("0"))
 
         return queryset
+
+
+class OrdersListViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderListSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return Order.objects.all().order_by("-id")
 
 
 # POST Views

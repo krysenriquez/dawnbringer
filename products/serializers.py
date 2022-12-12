@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from products.models import (
+    OrderHistory,
     Product,
     ProductType,
     ProductVariant,
@@ -12,6 +13,7 @@ from products.models import (
     Order,
     OrderDetail,
     OrderFee,
+    OrderAttachments,
 )
 
 
@@ -300,6 +302,26 @@ class CustomersSerializer(ModelSerializer):
         ]
 
 
+class OrderHistorySerializer(ModelSerializer):
+    order_stage = serializers.IntegerField(source="get_order_status_stage", required=False)
+
+    class Meta:
+        model = OrderHistory
+        fields = [
+            "order_status",
+            "order_stage",
+            "comment",
+            "created",
+        ]
+        ordering = ["id"]
+
+
+class OrderAttachmentsSerializer(ModelSerializer):
+    class Meta:
+        model = OrderAttachments
+        fields = ["attachment"]
+
+
 class OrderDetailsSerializer(ModelSerializer):
     product_variant_name = serializers.CharField(source="product_variant.get_variant_name", required=False)
     product_variant_sku = serializers.CharField(source="product_variant.get_variant_sku", required=False)
@@ -311,6 +333,7 @@ class OrderDetailsSerializer(ModelSerializer):
             "product_variant_sku",
             "quantity",
             "amount",
+            "total_amount",
             "discount",
         ]
 
@@ -328,15 +351,50 @@ class OrdersSerializer(ModelSerializer):
     customer = CustomersSerializer()
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
+    histories = OrderHistorySerializer(many=True, required=False)
+    latest_order_status = serializers.CharField(source="get_last_order_status", required=False)
+    latest_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
+    attachments = OrderAttachmentsSerializer(many=True, required=False)
 
     class Meta:
         model = Order
-        fields = ["total_amount", "total_discount", "total_fees", "order_amount", "details", "fees", "customer"]
+        fields = [
+            "total_amount",
+            "total_discount",
+            "total_fees",
+            "order_amount",
+            "latest_order_status",
+            "latest_order_stage",
+            "customer",
+            "payment_method",
+            "order_type",
+            "created",
+            "details",
+            "fees",
+            "histories",
+            "attachments",
+        ]
+
+
+class OrderListSerializer(ModelSerializer):
+    order_number = serializers.CharField(source="get_order_number", required=False)
+    latest_order_status = serializers.CharField(source="get_last_order_status", required=False)
+
+    class Meta:
+        model = Order
+        fields = [
+            "order_number",
+            "latest_order_status",
+            "total_amount",
+            "order_type",
+        ]
 
 
 class CreateOrderSerializer(ModelSerializer):
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
+    histories = OrderHistorySerializer(many=True, required=False)
+    attachments = OrderAttachmentsSerializer(many=True, required=False)
 
     class Meta:
         model = Order
@@ -347,6 +405,7 @@ class CreateOrderSerializer(ModelSerializer):
             "order_amount",
             "details",
             "fees",
+            "histories",
             "customer",
             "account",
         ]
@@ -354,11 +413,20 @@ class CreateOrderSerializer(ModelSerializer):
     def create(self, validated_data):
         details = validated_data.pop("details")
         fees = validated_data.pop("fees")
+        histories = validated_data.pop("history")
+        attachments = validated_data.pop("attachments")
         order = Order.objects.create(**validated_data)
+
         for detail in details:
             OrderDetail.objects.create(**detail, order=order)
 
         for fee in fees:
             OrderFee.objects.create(**fee, order=order)
+
+        for history in histories:
+            OrderHistory.objects.create(**history, order=order)
+
+        for attachment in attachments:
+            OrderAttachments.objects.create(**attachment, order=order)
 
         return order
