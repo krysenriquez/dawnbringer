@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
-from products.models import Customer, Address, Order
+from products.models import Customer, Address, Order, OrderAttachments
 from products.enums import OrderStatus
 
 
 def get_or_create_customer(request):
+    print(request.data)
     obj, created = Customer.objects.get_or_create(
         name=request.data["customer"]["name"],
         email_address=request.data["customer"]["email_address"],
@@ -22,8 +23,6 @@ def create_customer_address(customer, addresses):
 
 
 def process_order_request(request, customer):
-    attachments = []
-
     data = {
         "customer": customer.pk,
         "account": request.data["account"],
@@ -35,12 +34,13 @@ def process_order_request(request, customer):
         "payment_method": request.data["payment_method"],
         "details": request.data["details"],
         "fees": request.data["fees"],
-        "attachments": request.data["attachments"],
     }
+
+    attachments = request.data["attachments"]
 
     data["histories"] = create_order_initial_history()
 
-    return data
+    return data, attachments
 
 
 def create_order_initial_history():
@@ -61,3 +61,16 @@ def process_order_history_request(request):
         }
 
         return data
+
+
+def process_attachments(order, attachments):
+    has_failed_upload = False
+    attachments_dict = dict((attachments).lists())
+
+    for attachment in attachments_dict:
+        data = {"order": order, "attachment": attachment}
+        success = OrderAttachments.objects.create(**data)
+        if success is None:
+            has_failed_upload = True
+
+    return has_failed_upload

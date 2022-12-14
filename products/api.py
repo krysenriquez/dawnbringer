@@ -3,7 +3,7 @@ from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from products.models import ProductType, Product, ProductVariant, Order, OrderHistory
+from products.models import ProductType, Product, ProductVariant, Order, OrderHistory, ProductMedia
 from products.serializers import (
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
@@ -14,8 +14,15 @@ from products.serializers import (
     ProductInfoSerializer,
     ProductVariantInfoSerializer,
     OrdersSerializer,
+    ShopProductsVariantsListSerializer,
+    ShopProductsListSerializer,
 )
-from products.services import get_or_create_customer, process_order_request, process_order_history_request
+from products.services import (
+    get_or_create_customer,
+    process_order_request,
+    process_order_history_request,
+    process_attachments,
+)
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
 
@@ -123,6 +130,27 @@ class OrdersListViewSet(ModelViewSet):
         return Order.objects.all().order_by("-id")
 
 
+# FrontEnd
+class ShopProductsVariantsListViewSet(ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ShopProductsVariantsListSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return ProductVariant.objects.all().order_by("-id")
+
+
+class ShopProductsListViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ShopProductsListSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return Product.objects.all().order_by("-id")
+
+
 # POST Views
 class CreateOrderView(views.APIView):
     permission_classes = []
@@ -130,13 +158,18 @@ class CreateOrderView(views.APIView):
     def post(self, request, *args, **kwargs):
         customer = get_or_create_customer(request)
         if customer:
-            process_request = process_order_request(request, customer)
+            process_request, attachments = process_order_request(request, customer)
             serializer = CreateOrderSerializer(data=process_request)
-            print(serializer)
-
             if serializer.is_valid():
-                serializer.save()
-                return Response(data={"message": "Order created."}, status=status.HTTP_201_CREATED)
+                order = serializer.save()
+                has_failed_upload = process_attachments(order, attachments)
+                if has_failed_upload:
+                    return Response(
+                        data={"message": "Order created. Failed to upload attachments"},
+                        status=status.HTTP_201_CREATED,
+                    )
+                else:
+                    return Response(data={"message": "Order created."}, status=status.HTTP_201_CREATED)
             else:
                 print(serializer.errors)
                 return Response(
@@ -149,7 +182,6 @@ class CreateOrderHistoryView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        print(request.user)
         process_order_history = process_order_history_request(request)
         if process_order_history:
             serializer = CreateOrderHistorySerializer(data=process_order_history)
@@ -162,3 +194,18 @@ class CreateOrderHistoryView(views.APIView):
                     data={"message": "Unable to update Order."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+
+class Test(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        attachments = dict((request.data).lists())["attachments"]
+        print(attachments)
+        variant = ProductVariant.objects.get(id=2)
+        for attachment in attachments:
+            data = {"variant": variant, "file_attachment": attachment}
+            success = ProductMedia.objects.create(**data)
+            if success:
+                print(success)
+        return Response(data={"message": "Order updated."}, status=status.HTTP_201_CREATED)
