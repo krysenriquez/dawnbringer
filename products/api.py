@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from products.models import ProductType, Product, ProductVariant, Order, OrderHistory
 from products.serializers import (
     CreateOrderSerializer,
+    CreateOrderHistorySerializer,
     OrderListSerializer,
     ProductTypesSerializer,
     ProductsListSerializer,
@@ -14,7 +15,7 @@ from products.serializers import (
     ProductVariantInfoSerializer,
     OrdersSerializer,
 )
-from products.services import get_or_create_customer, process_order_request
+from products.services import get_or_create_customer, process_order_request, process_order_history_request
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
 
@@ -131,6 +132,8 @@ class CreateOrderView(views.APIView):
         if customer:
             process_request = process_order_request(request, customer)
             serializer = CreateOrderSerializer(data=process_request)
+            print(serializer)
+
             if serializer.is_valid():
                 serializer.save()
                 return Response(data={"message": "Order created."}, status=status.HTTP_201_CREATED)
@@ -138,5 +141,24 @@ class CreateOrderView(views.APIView):
                 print(serializer.errors)
                 return Response(
                     data={"message": "Unable to create Order."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+
+class CreateOrderHistoryView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        print(request.user)
+        process_order_history = process_order_history_request(request)
+        if process_order_history:
+            serializer = CreateOrderHistorySerializer(data=process_order_history)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(data={"message": "Order updated."}, status=status.HTTP_201_CREATED)
+            else:
+                print(serializer.errors)
+                return Response(
+                    data={"message": "Unable to update Order."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )

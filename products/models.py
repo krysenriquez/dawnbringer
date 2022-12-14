@@ -147,9 +147,9 @@ class Product(models.Model):
         return "%s : %s" % (self.product_name, self.product_type)
 
 
-class ProductVariation(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variation")
-    variation = models.CharField(max_length=255, null=True, blank=True)
+class ProductCategory(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="category")
+    category_name = models.CharField(max_length=255, null=True, blank=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
@@ -158,17 +158,19 @@ class ProductVariation(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
 
-    def get_type_name(self):
-        return self.variation
+    def get_category_name(self):
+        return self.category
 
     def __str__(self):
-        return "%s" % (self.variation)
+        return "%s %s" % (self.product, self.category)
 
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name="variant")
+    category = models.ForeignKey(
+        ProductCategory, on_delete=models.SET_NULL, related_name="variant", null=True, blank=True
+    )
     sku = models.CharField(max_length=30, unique=True, null=True, blank=True)
     variant_name = models.CharField(
         max_length=255,
@@ -203,6 +205,11 @@ class ProductVariant(models.Model):
 
     def get_variant_sku(self):
         return self.sku
+
+    def get_first_media(self):
+        media = self.media.first()
+        if media:
+            return media.file_attachment
 
     class Meta:
         ordering = ["-variant_id"]
@@ -344,7 +351,7 @@ class Customer(models.Model):
 class Address(models.Model):
     customer = models.ForeignKey(
         Customer,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="address",
         null=True,
     )
@@ -442,23 +449,26 @@ class Order(models.Model):
             return None
 
     def get_last_order_stage(self):
-        match self.histories.latest("created").order_status:
-            case OrderStatus.PENDING:
-                return 1
-            case OrderStatus.AWAITING_DELIVERY | OrderStatus.AWAITING_PICKUP:
-                return 2
-            case OrderStatus.ON_DELIVERY:
-                return 3
-            case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
-                return 4
-            case _:
-                None
+        try:
+            match self.histories.latest("created").order_status:
+                case OrderStatus.PENDING:
+                    return 1
+                case OrderStatus.AWAITING_DELIVERY | OrderStatus.AWAITING_PICKUP:
+                    return 2
+                case OrderStatus.ON_DELIVERY:
+                    return 3
+                case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
+                    return 4
+                case _:
+                    None
+        except:
+            return None
 
 
 class OrderDetail(models.Model):
     order = models.ForeignKey(
         Order,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="details",
         null=True,
     )
@@ -493,7 +503,7 @@ class OrderDetail(models.Model):
 class OrderFee(models.Model):
     order = models.ForeignKey(
         Order,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="fees",
         null=True,
     )
@@ -512,7 +522,7 @@ class OrderFee(models.Model):
 class OrderAttachments(models.Model):
     order = models.ForeignKey(
         Order,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="attachments",
         null=True,
     )
@@ -522,7 +532,7 @@ class OrderAttachments(models.Model):
 class OrderHistory(models.Model):
     order = models.ForeignKey(
         Order,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="histories",
         null=True,
     )
@@ -537,6 +547,9 @@ class OrderHistory(models.Model):
         blank=True,
     )
     created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "users.User", on_delete=models.SET_NULL, related_name="order_history_created_by", null=True, blank=True
+    )
 
     def __str__(self):
         return "%s - %s" % (self.order, self.order_status)

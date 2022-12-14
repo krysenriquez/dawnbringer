@@ -6,6 +6,7 @@ from products.models import (
     ProductType,
     ProductVariant,
     ProductMedia,
+    ProductVariantMeta,
     Price,
     PointValue,
     Customer,
@@ -28,6 +29,13 @@ class ProductTypesSerializer(ModelSerializer):
 class PointValuesSerializer(ModelSerializer):
     class Meta:
         model = PointValue
+        fields = "__all__"
+
+
+# Products
+class ProductVariantMetaSerializer(ModelSerializer):
+    class Meta:
+        model = ProductVariantMeta
         fields = "__all__"
 
 
@@ -202,12 +210,22 @@ class ProductsSerializer(ModelSerializer):
 class ProductVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
     price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
-    discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
+    category_name = serializers.CharField(source="category.category_name", required=False)
+    created_by_name = serializers.CharField(source="get_created_by_display_name", required=False)
 
     class Meta:
         model = ProductVariant
-        fields = ["variant_name", "sku", "variant_description", "product_name", "price", "discount", "media"]
+        fields = [
+            "variant_name",
+            "sku",
+            "product_name",
+            "category_name",
+            "price",
+            "media",
+            "variant_status",
+            "created_by_name",
+        ]
 
 
 class ProductsListSerializer(ModelSerializer):
@@ -231,8 +249,9 @@ class ProductVariantInfoSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
     price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
-    media = ProductMediasSerializer(many=True, required=False)
     created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    media = ProductMediasSerializer(many=True, required=False)
+    meta = ProductVariantMetaSerializer(many=True, required=False)
 
     class Meta:
         model = ProductVariant
@@ -273,8 +292,6 @@ class ProductInfoSerializer(ModelSerializer):
 
 
 # Orders
-
-
 class AddressesSerializer(ModelSerializer):
     class Meta:
         model = Address
@@ -304,16 +321,18 @@ class CustomersSerializer(ModelSerializer):
 
 class OrderHistorySerializer(ModelSerializer):
     order_stage = serializers.IntegerField(source="get_order_status_stage", required=False)
+    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
 
     class Meta:
         model = OrderHistory
-        fields = [
-            "order_status",
-            "order_stage",
-            "comment",
-            "created",
-        ]
+        fields = ["id", "order_status", "order_stage", "comment", "created", "created_by_name", "created_by"]
         ordering = ["id"]
+
+
+class CreateOrderHistorySerializer(ModelSerializer):
+    class Meta:
+        model = OrderHistory
+        fields = ["order", "order_status", "comment", "created_by"]
 
 
 class OrderAttachmentsSerializer(ModelSerializer):
@@ -325,12 +344,15 @@ class OrderAttachmentsSerializer(ModelSerializer):
 class OrderDetailsSerializer(ModelSerializer):
     product_variant_name = serializers.CharField(source="product_variant.get_variant_name", required=False)
     product_variant_sku = serializers.CharField(source="product_variant.get_variant_sku", required=False)
+    product_variant_thumbnail = serializers.ImageField(source="product_variant.get_first_media", required=False)
 
     class Meta:
         model = OrderDetail
         fields = [
+            "product_variant",
             "product_variant_name",
             "product_variant_sku",
+            "product_variant_thumbnail",
             "quantity",
             "amount",
             "total_amount",
@@ -355,10 +377,12 @@ class OrdersSerializer(ModelSerializer):
     latest_order_status = serializers.CharField(source="get_last_order_status", required=False)
     latest_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     attachments = OrderAttachmentsSerializer(many=True, required=False)
+    order_number = serializers.CharField(source="get_order_number", required=False)
 
     class Meta:
         model = Order
         fields = [
+            "order_number",
             "total_amount",
             "total_discount",
             "total_fees",
@@ -408,12 +432,13 @@ class CreateOrderSerializer(ModelSerializer):
             "histories",
             "customer",
             "account",
+            "attachments",
         ]
 
     def create(self, validated_data):
         details = validated_data.pop("details")
         fees = validated_data.pop("fees")
-        histories = validated_data.pop("history")
+        histories = validated_data.pop("histories")
         attachments = validated_data.pop("attachments")
         order = Order.objects.create(**validated_data)
 
