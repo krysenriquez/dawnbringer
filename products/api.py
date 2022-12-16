@@ -7,6 +7,7 @@ from products.models import ProductType, Product, ProductVariant, Order, OrderHi
 from products.serializers import (
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
+    CreateProductVariantsSerializer,
     OrderListSerializer,
     ProductTypesSerializer,
     ProductsListSerializer,
@@ -19,9 +20,11 @@ from products.serializers import (
 )
 from products.services import (
     get_or_create_customer,
+    process_media,
     process_order_request,
     process_order_history_request,
     process_attachments,
+    process_variant_request,
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
@@ -102,6 +105,7 @@ class ProductVariantInfoViewSet(ModelViewSet):
             return queryset
 
 
+# Orders
 class OrdersViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrdersSerializer
@@ -152,6 +156,32 @@ class ShopProductsListViewSet(ModelViewSet):
 
 
 # POST Views
+class CreateProductVariantView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        process_request, media = process_variant_request(request)
+
+        serializer = CreateProductVariantsSerializer(data=process_request)
+        # print(serializer)
+        if serializer.is_valid():
+            variant = serializer.save()
+            has_failed_upload = process_media(variant, media)
+            if has_failed_upload:
+                return Response(
+                    data={"message": "Variant created. Failed to upload attachments"},
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(data={"message": "Variant created."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"message": "Unable to create Variant."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class CreateOrderView(views.APIView):
     permission_classes = []
 
@@ -204,7 +234,7 @@ class Test(views.APIView):
         print(attachments)
         variant = ProductVariant.objects.get(id=2)
         for attachment in attachments:
-            data = {"variant": variant, "file_attachment": attachment}
+            data = {"variant": variant, "attachment": attachment}
             success = ProductMedia.objects.create(**data)
             if success:
                 print(success)

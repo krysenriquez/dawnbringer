@@ -4,7 +4,6 @@ from products.models import (
     DeliveryArea,
     ProductType,
     Product,
-    VariantCategory,
     ProductVariant,
     ProductMedia,
     Transfer,
@@ -24,7 +23,6 @@ admin.site.register(Branch)
 admin.site.register(DeliveryArea)
 admin.site.register(ProductType)
 admin.site.register(Product)
-admin.site.register(VariantCategory)
 admin.site.register(ProductVariant)
 admin.site.register(ProductMedia)
 admin.site.register(Transfer)

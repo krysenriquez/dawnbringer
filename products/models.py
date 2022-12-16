@@ -83,6 +83,7 @@ class DeliveryArea(models.Model):
     def __str__(self):
         return "%s - %s" % (self.area, self.amount)
 
+
 # Products
 class ProductType(models.Model):
     type = models.CharField(max_length=255, null=True, blank=True)
@@ -136,6 +137,13 @@ class Product(models.Model):
         default=False,
     )
     deleted = models.DateTimeField(blank=True, null=True)
+    enabled_variant = models.ForeignKey(
+        "products.ProductVariant",
+        on_delete=models.CASCADE,
+        related_name="enabled_by_product",
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         ordering = ["-product_id"]
@@ -147,30 +155,9 @@ class Product(models.Model):
         return "%s : %s" % (self.product_name, self.product_type)
 
 
-class VariantCategory(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="category")
-    category_name = models.CharField(max_length=255, null=True, blank=True)
-    created_by = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        related_name="product_variation_created_by",
-        null=True,
-    )
-    created = models.DateTimeField(auto_now_add=True)
-
-    def get_category_name(self):
-        return self.category_name
-
-    def __str__(self):
-        return "%s %s" % (self.product, self.category_name)
-
-
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    category = models.ForeignKey(
-        VariantCategory, on_delete=models.SET_NULL, related_name="variant", null=True, blank=True
-    )
     sku = models.CharField(max_length=30, unique=True, null=True, blank=True)
     variant_name = models.CharField(
         max_length=255,
@@ -209,7 +196,7 @@ class ProductVariant(models.Model):
     def get_first_media(self):
         media = self.media.first()
         if media:
-            return media.file_attachment
+            return media.attachment
 
     class Meta:
         ordering = ["-variant_id"]
@@ -219,15 +206,17 @@ class ProductVariant(models.Model):
 
 
 class ProductMedia(models.Model):
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE, related_name="media")
-    file_attachment = models.ImageField(blank=True, upload_to=product_image_directory)
+    variant = models.ForeignKey(
+        "products.ProductVariant", on_delete=models.CASCADE, related_name="media", null=True, blank=True
+    )
+    attachment = models.ImageField(blank=True, upload_to=product_image_directory)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return "%s - %s" % (
             self.variant,
-            self.file_attachment,
+            self.attachment,
         )
 
 
@@ -250,8 +239,12 @@ class Price(models.Model):
 
 
 class Transfer(models.Model):
-    branch = models.ForeignKey("products.Branch", on_delete=models.CASCADE, related_name="transfer")
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE, related_name="supplies")
+    branch = models.ForeignKey(
+        "products.Branch", on_delete=models.CASCADE, related_name="transfer", null=True, blank=True
+    )
+    variant = models.ForeignKey(
+        "products.ProductVariant", on_delete=models.CASCADE, related_name="supplies", null=True, blank=True
+    )
     quantity = models.IntegerField(
         default=0,
         blank=True,
@@ -271,6 +264,11 @@ class Transfer(models.Model):
         blank=True,
     )
     reference_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    comment = models.CharField(
         max_length=255,
         null=True,
         blank=True,
@@ -309,7 +307,9 @@ class PointValue(models.Model):
 
 
 class ProductVariantMeta(models.Model):
-    variant = models.ForeignKey("products.ProductVariant", on_delete=models.CASCADE, related_name="meta")
+    variant = models.OneToOneField(
+        "products.ProductVariant", on_delete=models.CASCADE, related_name="meta", null=True, blank=True
+    )
     meta_tag_title = models.CharField(
         max_length=255,
         blank=True,
