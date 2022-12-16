@@ -467,7 +467,7 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
     price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
-    meta = ProductVariantMetaSerializer(many=True, required=False)
+    meta = ProductVariantMetaSerializer()
 
     class Meta:
         model = ProductVariant
@@ -490,7 +490,7 @@ class ShopProductsVariantInfoSerializer(ModelSerializer):
     price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
-    meta = ProductVariantMetaSerializer(many=True, required=False)
+    meta = ProductVariantMetaSerializer()
 
     class Meta:
         model = ProductVariant

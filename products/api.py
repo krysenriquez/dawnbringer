@@ -3,7 +3,15 @@ from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from products.models import ProductType, Product, ProductVariant, Order, OrderHistory, ProductMedia
+from products.models import (
+    ProductType,
+    Product,
+    ProductVariant,
+    Order,
+    OrderHistory,
+    ProductMedia,
+    ProductVariantMeta,
+)
 from products.serializers import (
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
@@ -152,7 +160,10 @@ class ShopProductsListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        return Product.objects.all().order_by("-id")
+        slug = self.request.query_params.get("slug", None)
+        meta = ProductVariantMeta.objects.get(page_slug=slug)
+
+        return Product.objects.filter(enabled_variant=meta.variant)
 
 
 # POST Views
