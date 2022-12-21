@@ -161,9 +161,12 @@ class ShopProductsListViewSet(ModelViewSet):
 
     def get_queryset(self):
         slug = self.request.query_params.get("slug", None)
-        meta = ProductVariantMeta.objects.get(page_slug=slug)
+        if slug:
+            meta = ProductVariantMeta.objects.get(page_slug=slug)
 
-        return Product.objects.filter(enabled_variant=meta.variant)
+            return Product.objects.filter(enabled_variant=meta.variant)
+
+        return Product.objects.all()
 
 
 # POST Views
