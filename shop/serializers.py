@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from shop.models import PageComponent, PageContent
+from shop.models import PageComponent, PageContent, SectionComponent
 
 
 class PageContentsSerializer(ModelSerializer):
@@ -46,4 +46,17 @@ class PageComponentsSerializer(ModelSerializer):
             "content",
             "isPublished",
             "isDeleted",
+        ]
+
+
+class SectionComponentsSerializer(ModelSerializer):
+    class Meta:
+        model = SectionComponent
+        fields = [
+            "name",
+            "header",
+            "sub_header",
+            "button_text",
+            "button_link",
+            "background_image",
         ]

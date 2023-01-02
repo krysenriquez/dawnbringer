@@ -8,6 +8,7 @@ urlpatterns = [
     # APIs
     path("dbwebapi/accounts/", include("accounts.urls"), name="accounts"),
     path("dbwebapi/products/", include("products.urls"), name="products"),
+    path("dbwebapi/orders/", include("orders.urls"), name="orders"),
     path("dbwebapi/shop/", include("shop.urls"), name="shop"),
     path("dbwebapi/settings/", include("settings.urls"), name="settings"),
     path("dbwebapi/users/", include("users.urls"), name="users"),

@@ -5,11 +5,7 @@ from products.api import (
     ProductVariantsListViewSet,
     ProductInfoViewSet,
     ProductVariantInfoViewSet,
-    OrdersViewSet,
-    OrdersListViewSet,
     CreateProductVariantView,
-    CreateOrderView,
-    CreateOrderHistoryView,
     Test,
     ShopProductsListViewSet,
     ShopProductsVariantsListViewSet,
@@ -22,16 +18,12 @@ router.register(r"getproducts", ProductsListViewSet)
 router.register(r"getproductvariants", ProductVariantsListViewSet)
 router.register(r"getproduct", ProductInfoViewSet)
 router.register(r"getproductvariant", ProductVariantInfoViewSet)
-router.register(r"getorders", OrdersListViewSet)
-router.register(r"getorder", OrdersViewSet)
 # Frontend
 router.register(r"shop/getproducts", ShopProductsListViewSet)
 router.register(r"shop/getproductvariants", ShopProductsVariantsListViewSet)
 
 urlpatterns = [
     path("createvariant/", CreateProductVariantView.as_view()),
-    path("createorder/", CreateOrderView.as_view()),
-    path("updateorder/", CreateOrderHistoryView.as_view()),
     path("test/", Test.as_view()),
 ]
 

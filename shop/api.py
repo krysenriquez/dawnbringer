@@ -1,6 +1,6 @@
 from rest_framework.viewsets import ModelViewSet
-from shop.models import PageContent, PageComponent
-from shop.serializers import PageComponentsSerializer, PageContentsSerializer
+from shop.models import PageContent, PageComponent, SectionComponent
+from shop.serializers import PageComponentsSerializer, PageContentsSerializer, SectionComponentsSerializer
 
 
 class PageContentsViewSet(ModelViewSet):
@@ -20,6 +20,7 @@ class PageContentsViewSet(ModelViewSet):
 
         # return queryset
 
+
 class PageComponentsViewSet(ModelViewSet):
     queryset = PageComponent.objects.all()
     serializer_class = PageComponentsSerializer
@@ -35,3 +36,18 @@ class PageComponentsViewSet(ModelViewSet):
         #     queryset = queryset.filter(id=id)
 
         #  queryset
+
+
+class SectionComponentsViewSet(ModelViewSet):
+    queryset = SectionComponent.objects.all()
+    serializer_class = SectionComponentsSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        name = self.request.query_params.get("name", None)
+
+        if name is not None:
+            queryset = SectionComponent.objects.filter(is_deleted=True)
+            return queryset
+
