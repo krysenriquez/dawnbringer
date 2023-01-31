@@ -5,90 +5,35 @@ from django.db.models.functions import Coalesce
 from products.enums import Status
 
 
+def type_image_directory(instance, filename):
+    return "product-types/{0}/image/{1}".format(instance.product_id, filename)
+
+
 def product_image_directory(instance, filename):
-    return "products/{0}/media/{1}".format(instance.variant.sku, filename)
+    return "products/{0}/image/{1}".format(instance.product_id, filename)
 
 
-class Branch(models.Model):
-    branch_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    branch_name = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    address1 = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    address2 = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    city = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    zip = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    province = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    country = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    phone = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    is_active = models.BooleanField(
-        default=False,
-    )
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        related_name="branch_created_by",
-        null=True,
-    )
-
-    class Meta:
-        ordering = ["-branch_name"]
-
-    def __str__(self):
-        return "%s" % (self.branch_name)
+def variant_image_directory(instance, filename):
+    return "product-variants/{0}/image/{1}".format(instance.product_id, filename)
 
 
-class DeliveryArea(models.Model):
-    area = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-    )
-    amount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
-
-    def __str__(self):
-        return "%s - %s" % (self.area, self.amount)
+def variant_media_directory(instance, filename):
+    return "product-variants/{0}/media/{1}".format(instance.variant.sku, filename)
 
 
 # Products
 class ProductType(models.Model):
     type = models.CharField(max_length=255, null=True, blank=True)
+    type_image = models.ImageField(blank=True, upload_to=type_image_directory)
+    type_status = models.CharField(
+        max_length=11,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="product_type_created_by",
+        related_name="created_product_type",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -98,6 +43,27 @@ class ProductType(models.Model):
 
     def __str__(self):
         return "%s" % (self.type)
+
+
+class ProductTypeMeta(models.Model):
+    type = models.OneToOneField(
+        "products.ProductType", on_delete=models.CASCADE, related_name="meta", null=True, blank=True
+    )
+    meta_tag_title = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    meta_tag_description = models.TextField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    page_slug = models.SlugField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
 
 
 class Product(models.Model):
@@ -113,6 +79,7 @@ class Product(models.Model):
         null=True,
         blank=True,
     )
+    product_image = models.ImageField(blank=True, upload_to=product_image_directory)
     product_description = models.TextField(
         max_length=255,
         blank=True,
@@ -121,7 +88,7 @@ class Product(models.Model):
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="product_created_by",
+        related_name="created_product",
         null=True,
     )
     product_status = models.CharField(
@@ -135,13 +102,6 @@ class Product(models.Model):
         default=False,
     )
     deleted = models.DateTimeField(blank=True, null=True)
-    enabled_variant = models.ForeignKey(
-        "products.ProductVariant",
-        on_delete=models.CASCADE,
-        related_name="enabled_by_product",
-        blank=True,
-        null=True,
-    )
 
     class Meta:
         ordering = ["-product_id"]
@@ -154,7 +114,7 @@ class Product(models.Model):
 
 
 class ProductVariant(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_variants")
+    product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     sku = models.CharField(max_length=30, unique=True, null=True, blank=True)
     variant_name = models.CharField(
@@ -167,10 +127,11 @@ class ProductVariant(models.Model):
         blank=True,
         null=True,
     )
+    variant_image = models.ImageField(blank=True, upload_to=variant_image_directory)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="product_variant_created_by",
+        related_name="created_product_variant",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -210,7 +171,10 @@ class ProductMedia(models.Model):
     variant = models.ForeignKey(
         "products.ProductVariant", on_delete=models.CASCADE, related_name="media", null=True, blank=True
     )
-    attachment = models.ImageField(blank=True, upload_to=product_image_directory)
+    attachment = models.ImageField(blank=True, upload_to=variant_media_directory)
+    is_default = models.BooleanField(
+        default=False,
+    )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -231,9 +195,7 @@ class Price(models.Model):
     product_price = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
-    discount = models.DecimalField(
-        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
-    )
+    discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
 
     def __str__(self):
         return "%s - %s" % (self.variant, self.product_price)
@@ -241,7 +203,7 @@ class Price(models.Model):
 
 class Transfer(models.Model):
     branch = models.ForeignKey(
-        "products.Branch", on_delete=models.CASCADE, related_name="transfer", null=True, blank=True
+        "settings.Branch", on_delete=models.CASCADE, related_name="transfer", null=True, blank=True
     )
     variant = models.ForeignKey(
         "products.ProductVariant", on_delete=models.CASCADE, related_name="supplies", null=True, blank=True
@@ -277,7 +239,7 @@ class Transfer(models.Model):
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="supply_created_by",
+        related_name="created_transfer",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -299,9 +261,7 @@ class PointValue(models.Model):
         related_name="point_value_per_product",
         null=True,
     )
-    point_value = models.DecimalField(
-        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
-    )
+    point_value = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
 
     def __str__(self):
         return "%s - %s : %s" % (self.variant, self.membership_level, self.point_value)

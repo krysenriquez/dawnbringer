@@ -57,6 +57,7 @@ class ProductVariantsListSerializer(ModelSerializer):
     price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
     created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    product_variant_image = serializers.ImageField(source="get_first_media", required=False)
 
     class Meta:
         model = ProductVariant
@@ -66,6 +67,7 @@ class ProductVariantsListSerializer(ModelSerializer):
             "product_name",
             "price",
             "media",
+            "product_variant_image",
             "variant_status",
             "created_by_name",
         ]
@@ -218,9 +220,7 @@ class ProductsSerializer(ModelSerializer):
                     if ProductVariant.objects.filter(id=product_variants["id"]).exists():
                         e = ProductVariant.objects.get(id=product_variants["id"])
                         e.variant_name = validated_data.get("variant_name", instance.variant_name)
-                        e.variant_description = validated_data.get(
-                            "variant_description", instance.variant_description
-                        )
+                        e.variant_description = validated_data.get("variant_description", instance.variant_description)
                         e.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
                         e.save()
                         keep_product_variants.append(e.id)
@@ -256,6 +256,7 @@ class ProductsListSerializer(ModelSerializer):
         fields = [
             "product_id",
             "product_name",
+            "product_image",
             "product_status",
             "product_type_name",
             "product_variants_count",
@@ -276,6 +277,7 @@ class ProductInfoSerializer(ModelSerializer):
             "product_id",
             "product_name",
             "product_description",
+            "product_image",
             "product_type_name",
             "product_variants_count",
             "product_variants",

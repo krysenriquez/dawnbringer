@@ -82,7 +82,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -214,7 +214,7 @@ STATICFILES_DIRS = [
 if not DEBUG:
     STATIC_ROOT = Path(BASE_DIR, "static_cdn")
 
-MEDIA_ROOT = Path.absolute(Path(BASE_DIR, "statics", "media"))
+MEDIA_ROOT = Path.absolute(Path(BASE_DIR, "media"))
 MEDIA_URL = "/media/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

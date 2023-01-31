@@ -1,7 +1,5 @@
 from django.contrib import admin
 from products.models import (
-    Branch,
-    DeliveryArea,
     ProductType,
     Product,
     ProductVariant,
@@ -12,8 +10,6 @@ from products.models import (
     ProductVariantMeta,
 )
 
-admin.site.register(Branch)
-admin.site.register(DeliveryArea)
 admin.site.register(ProductType)
 admin.site.register(Product)
 admin.site.register(ProductVariant)

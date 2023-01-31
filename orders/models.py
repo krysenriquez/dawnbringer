@@ -93,9 +93,7 @@ class Order(models.Model):
     total_discount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
-    total_fees = models.DecimalField(
-        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
-    )
+    total_fees = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
     order_amount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
@@ -172,9 +170,7 @@ class OrderDetail(models.Model):
     total_amount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
-    discount = models.DecimalField(
-        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
-    )
+    discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -239,7 +235,7 @@ class OrderHistory(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
-        "users.User", on_delete=models.SET_NULL, related_name="order_history_created_by", null=True, blank=True
+        "users.User", on_delete=models.SET_NULL, related_name="created_order_history", null=True, blank=True
     )
 
     def __str__(self):

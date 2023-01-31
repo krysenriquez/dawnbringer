@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
-from products.models import ProductMedia, Branch
+from products.models import ProductMedia
+from settings.models import Branch
 
 
 def process_variant_request(request):

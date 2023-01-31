@@ -42,7 +42,7 @@ class Account(models.Model):
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="account_created_by",
+        related_name="created_account",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -160,14 +160,12 @@ class AvatarInfo(models.Model):
 class Code(models.Model):
     code = models.CharField(max_length=8, null=True, blank=True)
     status = models.CharField(max_length=32, choices=CodeStatus.choices, default=CodeStatus.ACTIVE)
-    account = models.ForeignKey(
-        Account, on_delete=models.CASCADE, null=True, blank=True, related_name="codes"
-    )
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="codes")
     code_attachment = models.ImageField(blank=True, upload_to=account_code_directory)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
-        related_name="code_created_by",
+        related_name="created_code",
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
