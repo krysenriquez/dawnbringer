@@ -85,7 +85,7 @@ class Account(models.Model):
 
 
 class PersonalInfo(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="personal_info")
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="personal_info")
     birthdate = models.DateField(
         blank=True,
         null=True,
@@ -99,7 +99,7 @@ class PersonalInfo(models.Model):
 
 
 class ContactInfo(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="contact_info")
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="contact_info")
     contact_number = models.CharField(
         max_length=255,
         blank=True,
@@ -116,7 +116,7 @@ class ContactInfo(models.Model):
 
 
 class AddressInfo(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="address_info")
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="address_info")
     street = models.TextField(
         blank=True,
         null=True,
@@ -143,7 +143,7 @@ class AddressInfo(models.Model):
 
 
 class AvatarInfo(models.Model):
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="avatar_info")
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="avatar_info")
     file_name = models.CharField(max_length=255, null=True, blank=True)
     file_attachment = models.ImageField(blank=True, upload_to=account_avatar_directory)
     created = models.DateTimeField(auto_now_add=True)

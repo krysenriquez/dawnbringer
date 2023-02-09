@@ -5,30 +5,36 @@ from django.db.models.functions import Coalesce
 from products.enums import Status
 
 
-def type_image_directory(instance, filename):
-    return "product-types/{0}/image/{1}".format(instance.product_id, filename)
+def product_type_image_directory(instance, filename):
+    return "product-types/{0}/image/{1}".format(instance.product_type_id, filename)
 
 
 def product_image_directory(instance, filename):
     return "products/{0}/image/{1}".format(instance.product_id, filename)
 
 
-def variant_image_directory(instance, filename):
-    return "product-variants/{0}/image/{1}".format(instance.product_id, filename)
+def product_variant_image_directory(instance, filename):
+    return "product-variants/{0}/image/{1}".format(instance.sku, filename)
 
 
-def variant_media_directory(instance, filename):
-    return "product-variants/{0}/media/{1}".format(instance.variant.sku, filename)
+def product_variant_media_directory(instance, filename):
+    return "product-variants/{0}/medias/{1}".format(instance.variant.sku, filename)
 
 
 # Products
 class ProductType(models.Model):
-    type = models.CharField(max_length=255, null=True, blank=True)
-    type_image = models.ImageField(blank=True, upload_to=type_image_directory)
-    type_status = models.CharField(
+    product_type_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    product_type = models.CharField(max_length=255, null=True, blank=True)
+    product_type_image = models.ImageField(blank=True, upload_to=product_type_image_directory)
+    product_type_status = models.CharField(
         max_length=11,
         choices=Status.choices,
         default=Status.DRAFT,
+    )
+    product_type_description = models.TextField(
+        max_length=255,
+        blank=True,
+        null=True,
     )
     created_by = models.ForeignKey(
         "users.User",
@@ -38,15 +44,15 @@ class ProductType(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
 
-    def get_type_name(self):
-        return self.type
+    def get_product_type_name(self):
+        return self.product_type
 
     def __str__(self):
-        return "%s" % (self.type)
+        return "%s" % (self.product_type)
 
 
 class ProductTypeMeta(models.Model):
-    type = models.OneToOneField(
+    product_type = models.OneToOneField(
         "products.ProductType", on_delete=models.CASCADE, related_name="meta", null=True, blank=True
     )
     meta_tag_title = models.CharField(
@@ -65,6 +71,9 @@ class ProductTypeMeta(models.Model):
         null=True,
     )
 
+    def __str__(self):
+        return "%s" % (self.product_type)
+
 
 class Product(models.Model):
     product_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -80,6 +89,11 @@ class Product(models.Model):
         blank=True,
     )
     product_image = models.ImageField(blank=True, upload_to=product_image_directory)
+    product_status = models.CharField(
+        max_length=11,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
     product_description = models.TextField(
         max_length=255,
         blank=True,
@@ -90,11 +104,6 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         related_name="created_product",
         null=True,
-    )
-    product_status = models.CharField(
-        max_length=11,
-        choices=Status.choices,
-        default=Status.DRAFT,
     )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -113,6 +122,28 @@ class Product(models.Model):
         return "%s : %s" % (self.product_name, self.product_type)
 
 
+class ProductMeta(models.Model):
+    product = models.OneToOneField("products.Product", on_delete=models.CASCADE, related_name="meta")
+    meta_tag_title = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    meta_tag_description = models.TextField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    page_slug = models.SlugField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return "%s" % (self.product)
+
+
 class ProductVariant(models.Model):
     product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -127,7 +158,7 @@ class ProductVariant(models.Model):
         blank=True,
         null=True,
     )
-    variant_image = models.ImageField(blank=True, upload_to=variant_image_directory)
+    variant_image = models.ImageField(blank=True, upload_to=product_variant_image_directory)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
@@ -171,7 +202,7 @@ class ProductMedia(models.Model):
     variant = models.ForeignKey(
         "products.ProductVariant", on_delete=models.CASCADE, related_name="media", null=True, blank=True
     )
-    attachment = models.ImageField(blank=True, upload_to=variant_media_directory)
+    attachment = models.ImageField(blank=True, upload_to=product_variant_media_directory)
     is_default = models.BooleanField(
         default=False,
     )
@@ -192,13 +223,11 @@ class Price(models.Model):
         related_name="price",
         null=True,
     )
-    product_price = models.DecimalField(
-        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
-    )
+    price = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
     discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
 
     def __str__(self):
-        return "%s - %s" % (self.variant, self.product_price)
+        return "%s - %s" % (self.variant, self.price)
 
 
 class Transfer(models.Model):

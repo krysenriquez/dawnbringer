@@ -3,6 +3,10 @@ from django.db import models
 from settings.enums import Property
 
 
+def company_image_directory(instance, filename):
+    return "company/{0}/image/{1}".format(instance.id, filename)
+
+
 class Setting(models.Model):
     property = models.CharField(max_length=255, default=None, choices=Property.choices)
     value = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
@@ -12,6 +16,38 @@ class Setting(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.property, self.value)
+
+
+class Company(models.Model):
+    name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    email_address = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    contact_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    location = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    description = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    logo = models.ImageField(blank=True, upload_to=company_image_directory)
+
+    def __str__(self):
+        return "%s" % (self.name)
 
 
 class Branch(models.Model):
@@ -79,15 +115,12 @@ class Branch(models.Model):
 
 
 class BranchAssignment(models.Model):
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         "users.User",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="branch_assignment",
-        null=True,
     )
-    branch = models.ForeignKey(
-        "settings.Branch", on_delete=models.CASCADE, related_name="assignment", null=True, blank=True
-    )
+    branch = models.ManyToManyField("settings.Branch", related_name="assignment")
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,

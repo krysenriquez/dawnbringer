@@ -60,15 +60,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {"fields": ("username", "email_address", "display_name", "password")}),
         (
             "Permissions",
-            {
-                "fields": (
-                    "user_type",
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "user_permissions",
-                )
-            },
+            {"fields": ("user_type", "is_active", "is_staff", "is_superuser", "user_permissions")},
         ),
     )
     add_fieldsets = (

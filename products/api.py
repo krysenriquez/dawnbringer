@@ -1,8 +1,10 @@
 from django.db.models import Prefetch
 from rest_framework import status, views, permissions
+from rest_framework.parsers import MultiPartParser
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from products.enums import Status
 from products.models import (
     ProductType,
     Product,
@@ -11,50 +13,63 @@ from products.models import (
     ProductVariantMeta,
 )
 from products.serializers import (
+    CreateProductSerializer,
+    CreateProductTypeSerializer,
     CreateProductVariantsSerializer,
-    ProductTypesSerializer,
+    ProductTypeListSerializer,
     ProductsListSerializer,
     ProductVariantsListSerializer,
     ProductInfoSerializer,
     ProductVariantInfoSerializer,
-    ShopProductsVariantsListSerializer,
-    ShopProductsListSerializer,
+    ProductTypeOptionsSerializer,
+    ProductOptionsSerializer,
+    ShopProductsVariantsSerializer,
+    ShopProductsSerializer,
+    ShopProductTypesSerializer,
 )
 from products.services import (
+    create_variant_initial_transfer,
     process_media,
+    process_product_request,
     process_variant_request,
+    transform_form_data_to_json,
+    transform_variant_form_data_to_json,
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
 
-class ProductTypesViewSet(ModelViewSet):
+class ProductTypeOptionsViewSet(ModelViewSet):
     queryset = ProductType.objects.all()
-    serializer_class = ProductTypesSerializer
+    serializer_class = ProductTypeOptionsSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = ProductType.objects.all().order_by("type")
+        queryset = ProductType.objects.all().order_by("product_type")
 
         return queryset
 
 
-class ProductVariantsListViewSet(ModelViewSet):
-    queryset = ProductVariant.objects.all()
-    serializer_class = ProductVariantsListSerializer
+class ProductTypesListViewSet(ModelViewSet):
+    queryset = ProductType.objects.all()
+    serializer_class = ProductTypeListSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        variant_id = self.request.query_params.get("variant_id", None)
-        sku = self.request.query_params.get("sku", None)
+        queryset = ProductType.objects.all().order_by("product_type")
 
-        queryset = ProductVariant.objects.all().order_by("product")
-        if variant_id:
-            queryset = queryset.filter(variant_id=variant_id)
+        return queryset
 
-        if sku:
-            queryset = queryset.filter(sku=sku)
+
+class ProductOptionsViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductOptionsSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = Product.objects.all().order_by("product_type")
 
         return queryset
 
@@ -89,6 +104,26 @@ class ProductInfoViewSet(ModelViewSet):
             return queryset
 
 
+class ProductVariantsListViewSet(ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ProductVariantsListSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        variant_id = self.request.query_params.get("variant_id", None)
+        sku = self.request.query_params.get("sku", None)
+
+        queryset = ProductVariant.objects.all().order_by("product")
+        if variant_id:
+            queryset = queryset.filter(variant_id=variant_id)
+
+        if sku:
+            queryset = queryset.filter(sku=sku)
+
+        return queryset
+
+
 class ProductVariantInfoViewSet(ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantInfoSerializer
@@ -106,54 +141,115 @@ class ProductVariantInfoViewSet(ModelViewSet):
 # FrontEnd
 class ShopProductsVariantsListViewSet(ModelViewSet):
     queryset = ProductVariant.objects.all()
-    serializer_class = ShopProductsVariantsListSerializer
+    serializer_class = ShopProductsVariantsSerializer
     permission_classes = []
     http_method_names = ["get"]
 
     def get_queryset(self):
-        return ProductVariant.objects.all().order_by("-id")
+        queryset = ProductVariant.objects.filter(
+            variant_status=Status.ACTIVE,
+            product__product_status=Status.ACTIVE,
+            product__product_type__product_type_status=Status.ACTIVE,
+        ).order_by("-id")
+
+        slug = self.request.query_params.get("slug", None)
+
+        if slug:
+            return queryset.filter(meta__page_slug=slug)
+
+        return queryset
 
 
 class ShopProductsListViewSet(ModelViewSet):
     queryset = Product.objects.all()
-    serializer_class = ShopProductsListSerializer
+    serializer_class = ShopProductsSerializer
     permission_classes = []
     http_method_names = ["get"]
 
     def get_queryset(self):
+        queryset = Product.objects.filter(
+            product_status=Status.ACTIVE, product_type__product_type_status=Status.ACTIVE
+        ).order_by("-id")
         slug = self.request.query_params.get("slug", None)
-        variant_id = self.request.query_params.get("variant_id", None)
+
         if slug:
-            meta = ProductVariantMeta.objects.get(page_slug=slug)
+            return queryset.filter(meta__page_slug=slug)
 
-            return Product.objects.filter(enabled_variant=meta.variant)
+        return queryset
 
-        if variant_id:
-            variant = ProductVariantMeta.objects.get(variant_id=variant_id)
-            return Product.objects.filter(enabled_variant=variant.variant)
 
-        return Product.objects.all()
+class ShopProductTypesListViewSet(ModelViewSet):
+    queryset = ProductType.objects.all()
+    serializer_class = ShopProductTypesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = ProductType.objects.filter(product_type_status=Status.ACTIVE).order_by("-id")
+        slug = self.request.query_params.get("slug", None)
+
+        if slug:
+            return queryset.filter(meta__page_slug=slug)
+
+        return queryset
 
 
 # POST Views
+class CreateProductTypeView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        process_request = transform_form_data_to_json(request.data)
+        process_request["created_by"] = request.user.pk
+        serializer = CreateProductTypeSerializer(data=process_request)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"message": "Product Type created."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"message": "Unable to create Product Type."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class CreateProductView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        process_request = transform_form_data_to_json(request.data)
+        process_request["created_by"] = request.user.pk
+        serializer = CreateProductSerializer(data=process_request)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"message": "Product created."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"message": "Unable to create Product."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class CreateProductVariantView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        process_request, media = process_variant_request(request)
+        process_request = transform_variant_form_data_to_json(request.data)
+        process_request["created_by"] = request.user.pk
+        process_request["supplies"] = create_variant_initial_transfer(process_request, request)
 
         serializer = CreateProductVariantsSerializer(data=process_request)
-        # print(serializer)
         if serializer.is_valid():
             variant = serializer.save()
-            has_failed_upload = process_media(variant, media)
+            has_failed_upload = process_media(variant, request.data)
             if has_failed_upload:
                 return Response(
-                    data={"message": "Variant created. Failed to upload attachments"},
-                    status=status.HTTP_201_CREATED,
+                    data={"message": "Variant created. Failed to upload attachments"}, status=status.HTTP_201_CREATED
                 )
-            else:
-                return Response(data={"message": "Variant created."}, status=status.HTTP_201_CREATED)
+            return Response(data={"message": "Variant created."}, status=status.HTTP_201_CREATED)
         else:
             print(serializer.errors)
             return Response(

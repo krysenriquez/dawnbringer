@@ -1,30 +1,32 @@
 from rest_framework.routers import DefaultRouter
 from products.api import (
-    ProductTypesViewSet,
+    ProductTypeOptionsViewSet,
+    ProductTypesListViewSet,
+    ProductOptionsViewSet,
     ProductsListViewSet,
     ProductVariantsListViewSet,
     ProductInfoViewSet,
     ProductVariantInfoViewSet,
+    CreateProductTypeView,
+    CreateProductView,
     CreateProductVariantView,
-    Test,
-    ShopProductsListViewSet,
-    ShopProductsVariantsListViewSet,
 )
 from django.urls import path
 
 router = DefaultRouter()
-router.register(r"getproducttypes", ProductTypesViewSet)
+router.register(r"getproducttypes", ProductTypesListViewSet)
+router.register(r"getproducttypesoptions", ProductTypeOptionsViewSet)
 router.register(r"getproducts", ProductsListViewSet)
+router.register(r"getproductsoptions", ProductOptionsViewSet)
 router.register(r"getproductvariants", ProductVariantsListViewSet)
 router.register(r"getproduct", ProductInfoViewSet)
 router.register(r"getproductvariant", ProductVariantInfoViewSet)
 # Frontend
-router.register(r"shop/getproducts", ShopProductsListViewSet)
-router.register(r"shop/getproductvariants", ShopProductsVariantsListViewSet)
 
 urlpatterns = [
-    path("createvariant/", CreateProductVariantView.as_view()),
-    path("test/", Test.as_view()),
+    path("createproducttype/", CreateProductTypeView.as_view()),
+    path("createproduct/", CreateProductView.as_view()),
+    path("createproductvariant/", CreateProductVariantView.as_view()),
 ]
 
 urlpatterns += router.urls

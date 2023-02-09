@@ -2,7 +2,9 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from products.models import (
     Product,
+    ProductMeta,
     ProductType,
+    ProductTypeMeta,
     ProductVariant,
     ProductMedia,
     ProductVariantMeta,
@@ -13,15 +15,6 @@ from products.models import (
 )
 
 
-class ProductTypesSerializer(ModelSerializer):
-    class Meta:
-        model = ProductType
-        fields = [
-            "type",
-        ]
-
-
-# Products
 class TransfersSerializer(ModelSerializer):
     class Meta:
         model = Transfer
@@ -54,20 +47,17 @@ class PricesSerializer(ModelSerializer):
 
 class ProductVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
-    price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
-    media = ProductMediasSerializer(many=True, required=False)
-    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
-    product_variant_image = serializers.ImageField(source="get_first_media", required=False)
+    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     class Meta:
         model = ProductVariant
         fields = [
+            "variant_image",
             "variant_name",
-            "sku",
             "product_name",
+            "sku",
             "price",
-            "media",
-            "product_variant_image",
             "variant_status",
             "created_by_name",
         ]
@@ -75,9 +65,9 @@ class ProductVariantsListSerializer(ModelSerializer):
 
 class ProductVariantInfoSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
-    price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
+    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
-    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
     media = ProductMediasSerializer(many=True, required=False)
     meta = ProductVariantMetaSerializer()
 
@@ -158,7 +148,7 @@ class CreateProductVariantsSerializer(ModelSerializer):
             if "id" in price.keys():
                 if Price.objects.filter(id=price["id"]).exists():
                     e = Price.objects.get(id=price["id"])
-                    e.product_price = validated_data.get("product_price", e.product_price)
+                    e.price = validated_data.get("price", e.price)
                     e.discount = validated_data.get("discount", e.discount)
                     e.save()
             else:
@@ -189,67 +179,26 @@ class CreateProductVariantsSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class ProductsSerializer(ModelSerializer):
-    product_type_name = serializers.CharField(source="get_product_type_name", required=False)
-    product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
-    created_by_name = serializers.CharField(source="get_created_by_display_name", required=False)
+# Product
+class ProductMetaSerializer(ModelSerializer):
+    class Meta:
+        model = ProductMeta
+        fields = "__all__"
+        read_only_fields = ("product",)
 
-    def create(self, validated_data):
-        product_variants = validated_data.pop("product_variants")
-        product = Product.objects.create(**validated_data)
 
-        for product_variant in product_variants:
-            ProductVariant.objects.create(**product_variant, product=product)
-
-        return product
-
-    def update(self, instance, validated_data):
-        product_variants = validated_data.pop("product_variants")
-
-        instance.product_type = validated_data.get("product_type", instance.product_type)
-        instance.product_name = validated_data.get("product_name", instance.product_name)
-        instance.product_description = validated_data.get("product_description", instance.product_description)
-        instance.product_status = validated_data.get("product_status", instance.product_status)
-        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
-        instance.save()
-
-        keep_product_variants = []
-        if product_variants:
-            for product_variant in product_variants:
-                if "id" in product_variant.keys():
-                    if ProductVariant.objects.filter(id=product_variants["id"]).exists():
-                        e = ProductVariant.objects.get(id=product_variants["id"])
-                        e.variant_name = validated_data.get("variant_name", instance.variant_name)
-                        e.variant_description = validated_data.get("variant_description", instance.variant_description)
-                        e.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
-                        e.save()
-                        keep_product_variants.append(e.id)
-                    else:
-                        continue
-                else:
-                    e = ProductVariant.objects.create(**product_variant, product=instance)
-                    keep_product_variants.append(e.id)
-
-            for product_variant in instance.product_variants.all():
-                if product_variant.id not in keep_product_variants:
-                    product_variant.delete()
+class ProductOptionsSerializer(ModelSerializer):
+    product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
 
     class Meta:
         model = Product
-        fields = [
-            "product_id",
-            "product_name",
-            "product_description",
-            "product_type_name",
-            "product_variants_count",
-            "created_by_name",
-        ]
+        fields = ["id", "product_name", "product_type_name"]
 
 
 class ProductsListSerializer(ModelSerializer):
-    product_type_name = serializers.CharField(source="product_type.get_type_name", required=False)
+    product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
-    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     class Meta:
         model = Product
@@ -265,10 +214,11 @@ class ProductsListSerializer(ModelSerializer):
 
 
 class ProductInfoSerializer(ModelSerializer):
+    meta = ProductMetaSerializer(required=False)
     product_variants = ProductVariantsListSerializer(many=True, required=False)
-    product_type_name = serializers.CharField(source="product_type.get_type_name", required=False)
+    product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
-    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
     enabled_variant_name = serializers.CharField(source="enabled_variant.variant_name", required=False)
 
     class Meta:
@@ -289,11 +239,139 @@ class ProductInfoSerializer(ModelSerializer):
         ]
 
 
+class CreateProductSerializer(ModelSerializer):
+    meta = ProductMetaSerializer(required=False)
+
+    def create(self, validated_data):
+        meta = validated_data.pop("meta")
+        product = Product.objects.create(**validated_data)
+
+        ProductMeta.objects.create(**meta, product=product)
+
+        return product
+
+    def update(self, instance, validated_data):
+        meta = validated_data.get("meta")
+
+        instance.product_type = validated_data.get("product_type", instance.product_type)
+        instance.product_name = validated_data.get("product_name", instance.product_name)
+        instance.product_image = validated_data.get("product_image", instance.product_image)
+        instance.product_status = validated_data.get("product_status", instance.product_status)
+        instance.product_description = validated_data.get("product_description", instance.product_description)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.save()
+
+        if meta:
+            if "id" in meta.keys():
+                if ProductMeta.objects.filter(id=meta["id"]).exists():
+                    e = ProductMeta.objects.get(id=meta["id"])
+                    e.meta_tag_title = validated_data.get("meta_tag_title", meta["meta_tag_title"])
+                    e.meta_tag_description = validated_data.get("meta_tag_description", meta["meta_tag_description"])
+                    e.page_slug = validated_data.get("page_slug", meta["page_slug"])
+                    e.save()
+            else:
+                e = ProductMeta.objects.create(**meta, account=instance)
+
+        return instance
+
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+
+# Product Type
+class ProductTypeMetaSerializer(ModelSerializer):
+    class Meta:
+        model = ProductTypeMeta
+        fields = "__all__"
+        read_only_fields = ("product_type",)
+
+
+class ProductTypeOptionsSerializer(ModelSerializer):
+    class Meta:
+        model = ProductType
+        fields = [
+            "id",
+            "product_type",
+        ]
+
+
+class ProductTypeListSerializer(ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+
+    class Meta:
+        model = ProductType
+        fields = [
+            "product_type_id",
+            "product_type",
+            "product_type_image",
+            "product_type_status",
+            "product_type_description",
+            "created_by_name",
+        ]
+
+
+class ProductTypeInfoSerializer(ModelSerializer):
+    meta = ProductTypeMetaSerializer(required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+
+    class Meta:
+        model = ProductType
+        fields = [
+            "product_type_id",
+            "product_type",
+            "product_type_image",
+            "product_type_status",
+            "product_type_description",
+            "created_by_name",
+        ]
+
+
+class CreateProductTypeSerializer(ModelSerializer):
+    meta = ProductTypeMetaSerializer(required=False)
+
+    def create(self, validated_data):
+        meta = validated_data.pop("meta")
+        product_type = ProductType.objects.create(**validated_data)
+
+        ProductTypeMeta.objects.create(**meta, product_type=product_type)
+
+        return product_type
+
+    def update(self, instance, validated_data):
+        meta = validated_data.get("meta")
+
+        instance.product_type = validated_data.get("product_type", instance.product_type)
+        instance.product_type_image = validated_data.get("product_type_image", instance.product_type_image)
+        instance.product_type_status = validated_data.get("product_type_status", instance.product_type_status)
+        instance.product_type_description = validated_data.get(
+            "product_type_description", instance.product_type_description
+        )
+        instance.save()
+
+        if meta:
+            if "id" in meta.keys():
+                if ProductTypeMeta.objects.filter(id=meta["id"]).exists():
+                    e = ProductTypeMeta.objects.get(id=meta["id"])
+                    e.meta_tag_title = validated_data.get("meta_tag_title", meta["meta_tag_title"])
+                    e.meta_tag_description = validated_data.get("meta_tag_description", meta["meta_tag_description"])
+                    e.page_slug = validated_data.get("page_slug", meta["page_slug"])
+                    e.save()
+            else:
+                e = ProductTypeMeta.objects.create(**meta, account=instance)
+
+        return instance
+
+    class Meta:
+        model = ProductType
+        fields = "__all__"
+
+
 # Front-End
 class ShopProductsVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
     category = serializers.CharField(source="product.product_type.type", required=False)
-    price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
+    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
     stocks = serializers.IntegerField(source="get_total_quantity")
@@ -317,8 +395,8 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
 
 
 # Child of ShopProductList
-class ShopProductsVariantInfoSerializer(ModelSerializer):
-    price = serializers.DecimalField(source="price.product_price", decimal_places=2, max_digits=13)
+class ShopProductsVariantsSerializer(ModelSerializer):
+    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
     stocks = serializers.IntegerField(source="get_total_quantity")
@@ -330,6 +408,7 @@ class ShopProductsVariantInfoSerializer(ModelSerializer):
             "variant_id",
             "variant_name",
             "variant_description",
+            "variant_image",
             "sku",
             "price",
             "discount",
@@ -339,10 +418,32 @@ class ShopProductsVariantInfoSerializer(ModelSerializer):
         ]
 
 
-class ShopProductsListSerializer(ModelSerializer):
+class ShopProductsSerializer(ModelSerializer):
     category = serializers.CharField(source="product_type.type", required=False)
-    enabled_variant = ShopProductsVariantInfoSerializer()
+    product_variants = ShopProductsVariantsSerializer(many=True, required=False)
+    meta = ProductMetaSerializer(required=False)
 
     class Meta:
         model = Product
-        fields = ["product_name", "product_description", "product_status", "category", "enabled_variant"]
+        fields = [
+            "product_name",
+            "product_image",
+            "product_description",
+            "category",
+            "product_variants",
+            "meta",
+        ]
+
+
+class ShopProductTypesSerializer(ModelSerializer):
+    product_variants = ShopProductsSerializer(many=True, required=False)
+    meta = ProductTypeMetaSerializer(required=False)
+
+    class Meta:
+        model = ProductType
+        fields = [
+            "product_type",
+            "product_type_image",
+            "product_type_description",
+            "meta",
+        ]

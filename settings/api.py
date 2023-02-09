@@ -1,16 +1,22 @@
+from django.db.models import Prefetch
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
-from settings.models import Setting, MembershipLevel
-from settings.serializers import SettingsSerializer, MembershipLevelsSerializer
+from settings.models import Branch, BranchAssignment, Setting, MembershipLevel
+from settings.serializers import (
+    BranchAssignmentsSerializer,
+    BranchesSerializer,
+    SettingsSerializer,
+    MembershipLevelsSerializer,
+)
 
 
 # Viewsets
 class SettingsViewSet(ModelViewSet):
     queryset = Setting.objects.all()
     serializer_class = SettingsSerializer
-    permission_classes = (permissions.IsAuthenticated, IsDeveloperUser, IsAdminUser, IsStaffUser)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
@@ -22,18 +28,43 @@ class SettingsViewSet(ModelViewSet):
 class MembershipLevelsViewSet(ModelViewSet):
     queryset = MembershipLevel.objects.all()
     serializer_class = MembershipLevelsSerializer
-    permission_classes = (permissions.IsAuthenticated, IsDeveloperUser, IsAdminUser, IsStaffUser)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = MembershipLevel.objects.all().order_by("-name")
+        queryset = MembershipLevel.objects.all().order_by("level")
 
         return queryset
 
 
-# HTTP Methods
+class BranchAssignmentsViewSet(ModelViewSet):
+    queryset = BranchAssignment.objects.all()
+    serializer_class = BranchAssignmentsSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = BranchAssignment.objects.prefetch_related(
+            Prefetch("branch", queryset=Branch.objects.order_by("id"))
+        ).filter(user=self.request.user)
+
+        return queryset
+
+
+class BranchViewSet(ModelViewSet):
+    queryset = Branch.objects.all()
+    serializer_class = BranchesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = Branch.objects.all()
+
+        return queryset
+
+
 class UpdateSettingsView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated, IsDeveloperUser, IsAdminUser, IsStaffUser)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
         settings = request.data
@@ -57,7 +88,7 @@ class UpdateSettingsView(views.APIView):
 
 
 class UpdateMembershipLevelsView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated, IsDeveloperUser, IsAdminUser, IsStaffUser)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
         membership_levels = request.data

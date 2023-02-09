@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer
-from settings.models import Setting, MembershipLevel
+from settings.models import Branch, BranchAssignment, Setting, MembershipLevel
 
 
 class SettingsSerializer(ModelSerializer):
@@ -20,7 +20,7 @@ class SettingsSerializer(ModelSerializer):
 class MembershipLevelsSerializer(ModelSerializer):
     def update(self, instance, validated_data):
         instance.name = validated_data.get("name", instance.name)
-        instance.value = validated_data.get("value", instance.value)
+        instance.level = validated_data.get("level", instance.level)
         instance.save()
 
         return instance
@@ -29,5 +29,25 @@ class MembershipLevelsSerializer(ModelSerializer):
         model = MembershipLevel
         fields = [
             "name",
-            "value",
+            "level",
+        ]
+
+
+class BranchesSerializer(ModelSerializer):
+    class Meta:
+        model = Branch
+        fields = [
+            "id",
+            "branch_id",
+            "branch_name",
+        ]
+
+
+class BranchAssignmentsSerializer(ModelSerializer):
+    branch = BranchesSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = BranchAssignment
+        fields = [
+            "branch",
         ]

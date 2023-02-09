@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from orders.enums import AddressType
 from orders.enums import AddressType, OrderType, PaymentMethods, OrderStatus
@@ -83,6 +84,8 @@ class Address(models.Model):
 
 
 class Order(models.Model):
+    order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    branch = models.ManyToManyField("settings.Branch", related_name="orders")
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, related_name="orders", null=True, blank=True)
     account = models.ForeignKey(
         "accounts.Account", on_delete=models.SET_NULL, related_name="account_order", null=True, blank=True
@@ -167,10 +170,10 @@ class OrderDetail(models.Model):
         blank=True,
     )
     amount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
+    discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
     total_amount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
-    discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -247,7 +250,7 @@ class OrderHistory(models.Model):
                 return 1
             case OrderStatus.AWAITING_DELIVERY | OrderStatus.AWAITING_PICKUP:
                 return 2
-            case OrderStatus.ON_DELIVERY:
+            case OrderStatus.ON_DELIVERY | OrderStatus.ON_PICKUP:
                 return 3
             case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
                 return 4

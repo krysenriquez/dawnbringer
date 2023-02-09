@@ -12,6 +12,7 @@ class OrderStatus(models.TextChoices):
     AWAITING_DELIVERY = "AWAITING_DELIVERY", _("Awaiting Delivery")
     AWAITING_PICKUP = "AWAITING_PICKUP", _("Awaiting Pickup")
     ON_DELIVERY = "ON_DELIVERY", _("On Delivery")
+    ON_PICKUP = "ON_PICKUP", _("On Pickup")
     CANCELLED = "CANCELLED", _("Cancelled")
     COMPLETED = "COMPLETED", _("Completed")
     REFUNDED = "REFUNDED", _("Refunded")

@@ -40,7 +40,7 @@ class CustomersSerializer(ModelSerializer):
 
 class OrderHistorySerializer(ModelSerializer):
     order_stage = serializers.IntegerField(source="get_order_status_stage", required=False)
-    created_by_name = serializers.CharField(source="created_by.get_display_name", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     class Meta:
         model = OrderHistory
@@ -151,6 +151,7 @@ class CreateOrderSerializer(ModelSerializer):
             "histories",
             "customer",
             "account",
+            "branch,"
             "attachments",
         ]
 
