@@ -10,15 +10,7 @@ class PageContentsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = PageContent.objects.exclude(is_deleted=True)
-        return queryset
-        # id = self.request.query_params.get("id", None)
-        # queryset = PageContent.objects.exclude(is_deleted=False)
-        # print(queryset)
-        # if id:
-        #     queryset = queryset.filter(id=id)
-
-        # return queryset
+        return PageContent.objects.exclude(is_deleted=True)
 
 
 class PageComponentsViewSet(ModelViewSet):
@@ -28,14 +20,7 @@ class PageComponentsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        # id = self.request.query_params.get("id", None)
-        queryset = PageComponent.objects.exclude(is_deleted=True)
-        print(queryset)
-        return queryset
-        # if id:
-        #     queryset = queryset.filter(id=id)
-
-        #  queryset
+        return PageComponent.objects.exclude(is_deleted=True)
 
 
 class SectionComponentsViewSet(ModelViewSet):
@@ -46,8 +31,5 @@ class SectionComponentsViewSet(ModelViewSet):
 
     def get_queryset(self):
         name = self.request.query_params.get("name", None)
-
         if name is not None:
-            queryset = SectionComponent.objects.filter(is_deleted=True)
-            return queryset
-
+            return SectionComponent.objects.filter(is_deleted=True)

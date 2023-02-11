@@ -40,11 +40,21 @@ class CustomersSerializer(ModelSerializer):
 
 class OrderHistorySerializer(ModelSerializer):
     order_stage = serializers.IntegerField(source="get_order_status_stage", required=False)
+    order_note = serializers.CharField(source="get_order_default_note", required=False)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     class Meta:
         model = OrderHistory
-        fields = ["id", "order_status", "order_stage", "comment", "created", "created_by_name", "created_by"]
+        fields = [
+            "id",
+            "order_status",
+            "order_stage",
+            "comment",
+            "order_note",
+            "created",
+            "created_by_name",
+            "created_by",
+        ]
         ordering = ["id"]
 
 
@@ -61,17 +71,17 @@ class OrderAttachmentsSerializer(ModelSerializer):
 
 
 class OrderDetailsSerializer(ModelSerializer):
-    product_variant_name = serializers.CharField(source="product_variant.get_variant_name", required=False)
-    product_variant_sku = serializers.CharField(source="product_variant.get_variant_sku", required=False)
-    product_variant_thumbnail = serializers.ImageField(source="product_variant.get_first_media", required=False)
+    variant_name = serializers.CharField(source="product_variant.variant_name", required=False)
+    variant_sku = serializers.CharField(source="product_variant.sku", required=False)
+    variant_thumbnail = serializers.ImageField(source="product_variant.variant_image", required=False)
 
     class Meta:
         model = OrderDetail
         fields = [
             "product_variant",
-            "product_variant_name",
-            "product_variant_sku",
-            "product_variant_thumbnail",
+            "variant_name",
+            "variant_sku",
+            "variant_thumbnail",
             "quantity",
             "amount",
             "total_amount",
@@ -93,8 +103,8 @@ class OrdersSerializer(ModelSerializer):
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
     histories = OrderHistorySerializer(many=True, required=False)
-    latest_order_status = serializers.CharField(source="get_last_order_status", required=False)
-    latest_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
+    current_order_status = serializers.CharField(source="get_last_order_status", required=False)
+    current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     attachments = OrderAttachmentsSerializer(many=True, required=False)
     order_number = serializers.CharField(source="get_order_number", required=False)
 
@@ -106,8 +116,8 @@ class OrdersSerializer(ModelSerializer):
             "total_discount",
             "total_fees",
             "order_amount",
-            "latest_order_status",
-            "latest_order_stage",
+            "current_order_status",
+            "current_order_stage",
             "customer",
             "payment_method",
             "order_type",
@@ -121,13 +131,14 @@ class OrdersSerializer(ModelSerializer):
 
 class OrderListSerializer(ModelSerializer):
     order_number = serializers.CharField(source="get_order_number", required=False)
-    latest_order_status = serializers.CharField(source="get_last_order_status", required=False)
+    current_order_status = serializers.CharField(source="get_last_order_status", required=False)
 
     class Meta:
         model = Order
         fields = [
+            "order_id",
             "order_number",
-            "latest_order_status",
+            "current_order_status",
             "total_amount",
             "order_type",
         ]
@@ -137,29 +148,15 @@ class CreateOrderSerializer(ModelSerializer):
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
     histories = OrderHistorySerializer(many=True, required=False)
-    attachments = OrderAttachmentsSerializer(many=True, required=False)
 
     class Meta:
         model = Order
-        fields = [
-            "total_amount",
-            "total_discount",
-            "total_fees",
-            "order_amount",
-            "details",
-            "fees",
-            "histories",
-            "customer",
-            "account",
-            "branch,"
-            "attachments",
-        ]
+        fields = "__all__"
 
     def create(self, validated_data):
         details = validated_data.pop("details")
         fees = validated_data.pop("fees")
         histories = validated_data.pop("histories")
-        attachments = validated_data.pop("attachments")
         order = Order.objects.create(**validated_data)
 
         for detail in details:
@@ -170,8 +167,5 @@ class CreateOrderSerializer(ModelSerializer):
 
         for history in histories:
             OrderHistory.objects.create(**history, order=order)
-
-        for attachment in attachments:
-            OrderAttachments.objects.create(**attachment, order=order)
 
         return order

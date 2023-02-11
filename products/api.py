@@ -16,6 +16,7 @@ from products.serializers import (
     CreateProductSerializer,
     CreateProductTypeSerializer,
     CreateProductVariantsSerializer,
+    ProductTypeInfoSerializer,
     ProductTypeListSerializer,
     ProductsListSerializer,
     ProductVariantsListSerializer,
@@ -30,8 +31,6 @@ from products.serializers import (
 from products.services import (
     create_variant_initial_transfer,
     process_media,
-    process_product_request,
-    process_variant_request,
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
 )
@@ -45,9 +44,7 @@ class ProductTypeOptionsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = ProductType.objects.all().order_by("product_type")
-
-        return queryset
+        return ProductType.objects.all().order_by("product_type")
 
 
 class ProductTypesListViewSet(ModelViewSet):
@@ -57,9 +54,18 @@ class ProductTypesListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = ProductType.objects.all().order_by("product_type")
+        return ProductType.objects.all().order_by("product_type")
 
-        return queryset
+
+class ProductTypeInfoViewSet(ModelViewSet):
+    queryset = ProductType.objects.all()
+    serializer_class = ProductTypeInfoSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        product_type_id = self.request.query_params.get("product_type_id", None)
+        return ProductType.objects.filter(product_type_id=product_type_id)
 
 
 class ProductOptionsViewSet(ModelViewSet):
@@ -69,9 +75,7 @@ class ProductOptionsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = Product.objects.all().order_by("product_type")
-
-        return queryset
+        return Product.objects.all().order_by("product_type")
 
 
 class ProductsListViewSet(ModelViewSet):
@@ -81,13 +85,7 @@ class ProductsListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        product_id = self.request.query_params.get("product_id", None)
-
-        queryset = Product.objects.all().order_by("product_type")
-        if product_id:
-            queryset = queryset.filter(product_id=product_id)
-
-        return queryset
+        return Product.objects.all().order_by("product_type")
 
 
 class ProductInfoViewSet(ModelViewSet):
@@ -99,9 +97,7 @@ class ProductInfoViewSet(ModelViewSet):
     def get_queryset(self):
         product_id = self.request.query_params.get("product_id", None)
         if product_id:
-            queryset = Product.objects.exclude(is_deleted=True).filter(product_id=product_id)
-
-            return queryset
+            return Product.objects.exclude(is_deleted=True).filter(product_id=product_id)
 
 
 class ProductVariantsListViewSet(ModelViewSet):
@@ -133,65 +129,7 @@ class ProductVariantInfoViewSet(ModelViewSet):
     def get_queryset(self):
         sku = self.request.query_params.get("sku", None)
         if sku:
-            queryset = ProductVariant.objects.exclude(is_deleted=True).filter(sku=sku)
-
-            return queryset
-
-
-# FrontEnd
-class ShopProductsVariantsListViewSet(ModelViewSet):
-    queryset = ProductVariant.objects.all()
-    serializer_class = ShopProductsVariantsSerializer
-    permission_classes = []
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = ProductVariant.objects.filter(
-            variant_status=Status.ACTIVE,
-            product__product_status=Status.ACTIVE,
-            product__product_type__product_type_status=Status.ACTIVE,
-        ).order_by("-id")
-
-        slug = self.request.query_params.get("slug", None)
-
-        if slug:
-            return queryset.filter(meta__page_slug=slug)
-
-        return queryset
-
-
-class ShopProductsListViewSet(ModelViewSet):
-    queryset = Product.objects.all()
-    serializer_class = ShopProductsSerializer
-    permission_classes = []
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = Product.objects.filter(
-            product_status=Status.ACTIVE, product_type__product_type_status=Status.ACTIVE
-        ).order_by("-id")
-        slug = self.request.query_params.get("slug", None)
-
-        if slug:
-            return queryset.filter(meta__page_slug=slug)
-
-        return queryset
-
-
-class ShopProductTypesListViewSet(ModelViewSet):
-    queryset = ProductType.objects.all()
-    serializer_class = ShopProductTypesSerializer
-    permission_classes = []
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = ProductType.objects.filter(product_type_status=Status.ACTIVE).order_by("-id")
-        slug = self.request.query_params.get("slug", None)
-
-        if slug:
-            return queryset.filter(meta__page_slug=slug)
-
-        return queryset
+            return ProductVariant.objects.exclude(is_deleted=True).filter(sku=sku)
 
 
 # POST Views
@@ -271,3 +209,117 @@ class Test(views.APIView):
             if success:
                 print(success)
         return Response(data={"message": "Order updated."}, status=status.HTTP_201_CREATED)
+
+
+# Front End
+class ShopProductTypesListViewSet(ModelViewSet):
+    queryset = ProductType.objects.all()
+    serializer_class = ShopProductTypesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return (
+            ProductType.objects.filter(product_type_status=Status.ACTIVE)
+            .prefetch_related(
+                Prefetch(
+                    "products",
+                    queryset=Product.objects.filter(product_status=Status.ACTIVE).order_by("-id"),
+                )
+            )
+            .order_by("-id")
+        )
+
+
+class ShopProductTypeViewSet(ModelViewSet):
+    queryset = ProductType.objects.all()
+    serializer_class = ShopProductTypesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        slug = self.request.query_params.get("slug", None)
+        if slug:
+            return (
+                ProductType.objects.filter(product_type_status=Status.ACTIVE, meta__page_slug=slug)
+                .prefetch_related(
+                    Prefetch(
+                        "products",
+                        queryset=Product.objects.filter(product_status=Status.ACTIVE).order_by("-id"),
+                    )
+                )
+                .order_by("-id")
+            )
+
+
+class ShopProductsListViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ShopProductsSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return (
+            Product.objects.filter(product_status=Status.ACTIVE, product_type__product_type_status=Status.ACTIVE)
+            .prefetch_related(
+                Prefetch(
+                    "product_variants",
+                    queryset=ProductVariant.objects.filter(variant_status=Status.ACTIVE).order_by("-id"),
+                )
+            )
+            .order_by("-id")
+        )
+
+
+class ShopProductViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ShopProductsSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        slug = self.request.query_params.get("slug", None)
+        if slug:
+            return (
+                Product.objects.filter(
+                    product_status=Status.ACTIVE, product_type__product_type_status=Status.ACTIVE, meta__page_slug=slug
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "product_variants",
+                        queryset=ProductVariant.objects.filter(variant_status=Status.ACTIVE).order_by("-id"),
+                    )
+                )
+                .order_by("-id")
+            )
+
+
+class ShopProductsVariantsListViewSet(ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ShopProductsVariantsSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return ProductVariant.objects.filter(
+            variant_status=Status.ACTIVE,
+            product__product_status=Status.ACTIVE,
+            product__product_type__product_type_status=Status.ACTIVE,
+        ).order_by("-id")
+
+
+class ShopProductsVariantViewSet(ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ShopProductsVariantsSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        slug = self.request.query_params.get("slug", None)
+        if slug:
+            return ProductVariant.objects.filter(
+                variant_status=Status.ACTIVE,
+                product__product_status=Status.ACTIVE,
+                product__product_type__product_type_status=Status.ACTIVE,
+                meta__page_slug=slug,
+            ).order_by("-id")

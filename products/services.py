@@ -45,38 +45,6 @@ def transform_variant_form_data_to_json(request):
 
     return data
 
-
-def process_product_request(data):
-    product_type = ProductType.objects.get(product_type_id=data["product_type"])
-
-    data["product_type"] = product_type.pk
-    print(data)
-    return data
-
-
-def process_variant_request(request):
-    media = []
-
-    data = {
-        "product": request.data["product"],
-        "sku": request.data["sku"],
-        "variant_name": request.data["variant_name"],
-        "variant_description": request.data["variant_description"],
-        "variant_status": request.data["variant_status"],
-        "price": request.data["price"],
-        "meta": request.data["meta"],
-        "point_values": request.data["point_values"],
-        "created_by": request.user.pk,
-    }
-
-    if request.data["media"]:
-        media = request.data["media"]
-
-    data["supplies"] = create_variant_initial_transfer(request)
-
-    return data, media
-
-
 def create_variant_initial_transfer(data, request):
     main = get_object_or_404(Branch, branch_name="Main Office")
 

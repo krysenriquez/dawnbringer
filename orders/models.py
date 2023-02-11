@@ -85,7 +85,9 @@ class Address(models.Model):
 
 class Order(models.Model):
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    branch = models.ManyToManyField("settings.Branch", related_name="orders")
+    branch = models.ForeignKey(
+        "settings.Branch", on_delete=models.SET_NULL, related_name="orders", null=True, blank=True
+    )
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, related_name="orders", null=True, blank=True)
     account = models.ForeignKey(
         "accounts.Account", on_delete=models.SET_NULL, related_name="account_order", null=True, blank=True
@@ -213,6 +215,9 @@ class OrderAttachments(models.Model):
     )
     attachment = models.ImageField(blank=True, upload_to=order_attachments_directory)
 
+    def __str__(self):
+        return "%s" % (self.order)
+
 
 class OrderHistory(models.Model):
     order = models.ForeignKey(
@@ -254,3 +259,22 @@ class OrderHistory(models.Model):
                 return 3
             case OrderStatus.CANCELLED | OrderStatus.COMPLETED | OrderStatus.REFUNDED:
                 return 4
+
+    def get_order_default_note(self):
+        match self.order_status:
+            case OrderStatus.PENDING:
+                return 'Order Status moved to Pending'
+            case OrderStatus.AWAITING_DELIVERY:
+                return 'Order Status moved to Awaiting Delivery'
+            case OrderStatus.AWAITING_PICKUP:
+                return 'Order Status moved to Awaiting Pickup'
+            case OrderStatus.ON_DELIVERY:
+                return 'Order Status moved to On Delivery'
+            case OrderStatus.ON_PICKUP:
+                return 'Order Status moved to On Pickup'
+            case OrderStatus.CANCELLED:
+                return 'Order Status moved to Cancelled'
+            case OrderStatus.COMPLETED:
+                return 'Order Status moved to Completed'
+            case OrderStatus.REFUNDED:
+                return 'Order Status moved to Refunded'

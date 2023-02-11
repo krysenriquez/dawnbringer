@@ -20,9 +20,7 @@ class SettingsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = Setting.objects.all().order_by("-property")
-
-        return queryset
+        return Setting.objects.all().order_by("-property")
 
 
 class MembershipLevelsViewSet(ModelViewSet):
@@ -32,9 +30,7 @@ class MembershipLevelsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = MembershipLevel.objects.all().order_by("level")
-
-        return queryset
+        return MembershipLevel.objects.all().order_by("level")
 
 
 class BranchAssignmentsViewSet(ModelViewSet):
@@ -44,11 +40,9 @@ class BranchAssignmentsViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = BranchAssignment.objects.prefetch_related(
+        return BranchAssignment.objects.prefetch_related(
             Prefetch("branch", queryset=Branch.objects.order_by("id"))
         ).filter(user=self.request.user)
-
-        return queryset
 
 
 class BranchViewSet(ModelViewSet):
@@ -58,9 +52,7 @@ class BranchViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        queryset = Branch.objects.all()
-
-        return queryset
+        return Branch.objects.all()
 
 
 class UpdateSettingsView(views.APIView):
@@ -109,3 +101,26 @@ class UpdateMembershipLevelsView(views.APIView):
                 data={"message": "Unable to create Update Membership Levels."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+# Front End
+class ShopBranchListViewSet(ModelViewSet):
+    queryset = Branch.objects.all()
+    serializer_class = BranchesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return Branch.objects.all()
+
+
+class ShopBranchViewSet(ModelViewSet):
+    queryset = Branch.objects.all()
+    serializer_class = BranchesSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
+        if branch_id:
+            return Branch.objects.filter(branch_id=branch_id).all()

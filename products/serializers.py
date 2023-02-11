@@ -49,6 +49,7 @@ class ProductVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
     price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
+    stocks = serializers.IntegerField(source="get_total_quantity")
 
     class Meta:
         model = ProductVariant
@@ -58,6 +59,7 @@ class ProductVariantsListSerializer(ModelSerializer):
             "product_name",
             "sku",
             "price",
+            "stocks",
             "variant_status",
             "created_by_name",
         ]
@@ -323,6 +325,7 @@ class ProductTypeInfoSerializer(ModelSerializer):
             "product_type_image",
             "product_type_status",
             "product_type_description",
+            "meta",
             "created_by_name",
         ]
 
@@ -436,7 +439,6 @@ class ShopProductsSerializer(ModelSerializer):
 
 
 class ShopProductTypesSerializer(ModelSerializer):
-    product_variants = ShopProductsSerializer(many=True, required=False)
     meta = ProductTypeMetaSerializer(required=False)
 
     class Meta:

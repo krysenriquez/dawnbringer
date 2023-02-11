@@ -1,18 +1,41 @@
+import json
 from django.shortcuts import get_object_or_404
 from orders.models import Customer, Address, Order, OrderAttachments
 from orders.enums import OrderStatus
 
 
+def transform_order_form_data_to_json(request):
+    data = {}
+    for key, value in request.items():
+        if key == "attachments":
+            continue
+        if type(value) != str:
+            data[key] = value
+            continue
+        if "{" in value or "[" in value:
+            try:
+                data[key] = json.loads(value)
+            except ValueError:
+                data[key] = value
+        else:
+            try:
+                data[key] = json.loads(value)
+            except ValueError:
+                data[key] = value
+
+    return data
+
+
 def get_or_create_customer(request):
-    print(request.data)
+    print(request["customer"])
     obj, created = Customer.objects.get_or_create(
-        name=request.data["customer"]["name"],
-        email_address=request.data["customer"]["email_address"],
-        contact_number=request.data["customer"]["contact_number"],
+        name=request["customer"]["name"],
+        email_address=request["customer"]["email_address"],
+        contact_number=request["customer"]["contact_number"],
     )
 
     if created:
-        create_customer_address(obj, request.data["customer"]["address"])
+        create_customer_address(obj, request["customer"]["address"])
 
     return obj
 
@@ -55,7 +78,7 @@ def create_order_initial_history():
 
 
 def process_order_history_request(request):
-    order = get_object_or_404(Order, id=request.data["order_number"].lstrip("0"))
+    order = get_object_or_404(Order, order_id=request.data["order_id"])
 
     if order:
         data = {
@@ -68,9 +91,9 @@ def process_order_history_request(request):
         return data
 
 
-def process_attachments(order, attachments):
+def process_attachments(order, request):
     has_failed_upload = False
-    attachments_dict = dict((attachments).lists())
+    attachments_dict = dict((request).lists())["attachments"]
 
     for attachment in attachments_dict:
         data = {"order": order, "attachment": attachment}

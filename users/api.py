@@ -182,36 +182,6 @@ class PasswordValidation(views.APIView):
             )
 
 
-# class UserAccountViewSet(ModelViewSet):
-#     queryset = User.objects.all()
-#     serializer_class = UserAccountSerializer
-#     permission_classes = (permissions.IsAuthenticated,)
-#     http_method_names = ["get"]
-
-#     def get_queryset(self):
-#         queryset = User.objects.exclude(is_active=False)
-#         user = self.request.user.id
-
-#         if user is not None:
-#             max_account_limit = settings.filter(property=Property.MAX_USER_ACCOUNT_LIMIT).first().value
-
-#             queryset = (
-#                 queryset.prefetch_related(
-#                     Prefetch(
-#                         "account_user",
-#                         queryset=Account.objects.annotate(account_name=Concat(F("first_name"), V(" "), F("last_name")))
-#                         .filter(is_deleted=False, account_status=AccountStatus.ACTIVE)
-#                         .order_by("id"),
-#                     )
-#                 )
-#                 .annotate(remaining=max_account_limit - Count("account_user"))
-#                 .filter(id=user)
-#                 .exclude(is_active=False)
-#             )
-
-#             return queryset
-
-
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
