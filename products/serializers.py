@@ -79,6 +79,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
             "variant_name",
             "sku",
             "variant_description",
+            "variant_tags",
             "product_name",
             "price",
             "discount",
@@ -230,6 +231,7 @@ class ProductInfoSerializer(ModelSerializer):
             "product_name",
             "product_description",
             "product_image",
+            "product_tags",
             "product_type_name",
             "product_variants_count",
             "product_variants",
@@ -324,6 +326,7 @@ class ProductTypeInfoSerializer(ModelSerializer):
             "product_type",
             "product_type_image",
             "product_type_status",
+            "product_type_tags",
             "product_type_description",
             "meta",
             "created_by_name",
@@ -372,6 +375,7 @@ class CreateProductTypeSerializer(ModelSerializer):
 
 # Front-End
 class ShopProductsVariantsListSerializer(ModelSerializer):
+    product_type = serializers.CharField(source="product.product_type.product_type", required=False)
     product_name = serializers.CharField(source="product.product_name", required=False)
     category = serializers.CharField(source="product.product_type.type", required=False)
     price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
@@ -383,6 +387,7 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = [
+            "product_type",
             "variant_id",
             "product_name",
             "variant_name",
@@ -399,6 +404,7 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
 
 # Child of ShopProductList
 class ShopProductsVariantsSerializer(ModelSerializer):
+    product_type = serializers.CharField(source="product.product_type.product_type", required=False)
     price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
@@ -408,6 +414,7 @@ class ShopProductsVariantsSerializer(ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = [
+            "product_type",
             "variant_id",
             "variant_name",
             "variant_description",

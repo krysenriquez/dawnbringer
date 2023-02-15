@@ -13,6 +13,7 @@ urlpatterns = [
     path("dbwebapi/settings/", include("settings.urls"), name="settings"),
     path("dbwebapi/users/", include("users.urls"), name="users"),
     path("dbwebapi/vanguard/", include("vanguard.urls"), name="vanguard"),
+    path("dbwebapi/emails/", include("emails.urls"), name="emails"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = "La Reussi Admin"

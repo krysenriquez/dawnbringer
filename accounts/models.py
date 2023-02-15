@@ -1,6 +1,6 @@
 import uuid
 from django.db import models
-from accounts.enums import AccountStatus, CodeStatus, Gender
+from accounts.enums import AccountStatus, AddressType, CodeStatus, Gender
 
 
 def account_avatar_directory(instance, filename):
@@ -32,7 +32,7 @@ class Account(models.Model):
         choices=AccountStatus.choices,
         default=AccountStatus.DRAFT,
     )
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         "users.User",
         on_delete=models.SET_NULL,
         related_name="user",
@@ -117,29 +117,49 @@ class ContactInfo(models.Model):
 
 class AddressInfo(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="address_info")
-    street = models.TextField(
-        blank=True,
+    address1 = models.CharField(
+        max_length=255,
         null=True,
+        blank=True,
     )
-    city = models.TextField(
-        blank=True,
+    address2 = models.CharField(
+        max_length=255,
         null=True,
+        blank=True,
     )
-    state = models.TextField(
-        blank=True,
+    city = models.CharField(
+        max_length=255,
         null=True,
+        blank=True,
+    )
+    zip = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    province = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    country = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    address_type = models.CharField(
+        max_length=11,
+        choices=AddressType.choices,
+        default=AddressType.BILLING,
     )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        verbose_name_plural = "Addresses"
-
     def __str__(self):
-        return "%s" % (self.account)
-
-    def get_full_address(self):
-        return "%s %s %s" % (self.street, self.city, self.state)
+        return "%s : %s" % (
+            self.account,
+            self.address_type,
+        )
 
 
 class AvatarInfo(models.Model):
@@ -158,28 +178,28 @@ class AvatarInfo(models.Model):
 
 
 class Code(models.Model):
-    code = models.CharField(max_length=8, null=True, blank=True)
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="code")
+    code = models.CharField(max_length=30, null=True, blank=True)
     status = models.CharField(max_length=32, choices=CodeStatus.choices, default=CodeStatus.ACTIVE)
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="codes")
-    code_attachment = models.ImageField(blank=True, upload_to=account_code_directory)
-    created_by = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        related_name="created_code",
-        null=True,
-    )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    deleted = models.DateTimeField(blank=True, null=True)
-    is_deleted = models.BooleanField(
-        default=False,
-    )
-    quantity = None
 
     def __str__(self):
-        return "%s - %s : %s - %s" % (
+        return "%s :  %s - %s" % (
             self.account,
             self.code,
-            self.code_type,
             self.status,
         )
+
+
+class Registration(models.Model):
+    registration_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    order = models.OneToOneField("orders.Order", on_delete=models.CASCADE, related_name="registration")
+    registration_status = models.CharField(
+        max_length=11,
+        choices=AccountStatus.choices,
+        default=AccountStatus.PENDING,
+    )
+
+    def __str__(self):
+        return "%s" % (self.order)

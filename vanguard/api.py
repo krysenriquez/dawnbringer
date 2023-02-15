@@ -2,24 +2,39 @@ from rest_framework import status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from users.enums import *
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-from vanguard.serializers import AuthLoginSerializer
+from vanguard.serializers import AuthAdminLoginSerializer, AuthLoginSerializer, AuthRefreshSerializer
 from vanguard.permissions import *
+from accounts.models import Account
+
+
+class AuthAdminLoginView(TokenObtainPairView):
+    serializer_class = AuthAdminLoginSerializer
 
 
 class AuthLoginView(TokenObtainPairView):
     serializer_class = AuthLoginSerializer
 
 
+class AuthRefreshView(TokenRefreshView):
+    serializer_class = AuthRefreshSerializer
+
+
 class WhoAmIView(views.APIView):
     def post(self, request, *args, **kwargs):
         data = {
-            "userId": request.user.user_id,
+            "user_id": request.user.user_id,
+            "email_address": request.user.email_address,
             "username": request.user.username,
-            "userType": request.user.user_type,
+            "user_type": request.user.user_type,
         }
+
+        if request.user.user_type == UserType.MEMBER:
+            account = Account.objects.get(user=request.user)
+            if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
+                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
 
         return Response(
             data=data,

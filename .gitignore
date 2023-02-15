@@ -2,3 +2,4 @@
 *0*.py
 *.pyc
 **/statics/media/*
+**/media/*

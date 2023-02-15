@@ -61,7 +61,7 @@ class OrderHistorySerializer(ModelSerializer):
 class CreateOrderHistorySerializer(ModelSerializer):
     class Meta:
         model = OrderHistory
-        fields = ["order", "order_status", "comment", "created_by"]
+        fields = ["order", "order_status", "comment", "email_sent", "created_by"]
 
 
 class OrderAttachmentsSerializer(ModelSerializer):

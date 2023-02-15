@@ -1,5 +1,5 @@
 from django.contrib import admin
-from accounts.models import Account, PersonalInfo, ContactInfo, AddressInfo, AvatarInfo, Code
+from accounts.models import Account, PersonalInfo, ContactInfo, AddressInfo, AvatarInfo, Code, Registration
 
 
 class AccountAdmin(admin.ModelAdmin):
@@ -26,7 +26,6 @@ class CodeAdmin(admin.ModelAdmin):
         "code",
         "status",
         "account",
-        "created_by",
         "created",
         "modified",
     )
@@ -47,3 +46,4 @@ admin.site.register(ContactInfo)
 admin.site.register(AddressInfo)
 admin.site.register(AvatarInfo)
 admin.site.register(Code, CodeAdmin)
+admin.site.register(Registration)

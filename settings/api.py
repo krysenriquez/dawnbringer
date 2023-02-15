@@ -71,10 +71,10 @@ class UpdateSettingsView(views.APIView):
 
         serializer = SettingsSerializer(instances, many=True)
         if serializer:
-            return Response(data={"message": "System Settings Updated."}, status=status.HTTP_201_CREATED)
+            return Response(data={"detail": "System Settings Updated."}, status=status.HTTP_201_CREATED)
         else:
             return Response(
-                data={"message": "Unable to create Update System Settings."},
+                data={"detail": "Unable to create Update System Settings."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -95,10 +95,10 @@ class UpdateMembershipLevelsView(views.APIView):
 
         serializer = MembershipLevelsSerializer(instances, many=True)
         if serializer:
-            return Response(data={"message": "Membership Levels Updated."}, status=status.HTTP_201_CREATED)
+            return Response(data={"detail": "Membership Levels Updated."}, status=status.HTTP_201_CREATED)
         else:
             return Response(
-                data={"message": "Unable to create Update Membership Levels."},
+                data={"detail": "Unable to create Update Membership Levels."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

@@ -143,11 +143,11 @@ class CreateProductTypeView(views.APIView):
         serializer = CreateProductTypeSerializer(data=process_request)
         if serializer.is_valid():
             serializer.save()
-            return Response(data={"message": "Product Type created."}, status=status.HTTP_201_CREATED)
+            return Response(data={"detail": "Product Type created."}, status=status.HTTP_201_CREATED)
         else:
             print(serializer.errors)
             return Response(
-                data={"message": "Unable to create Product Type."},
+                data={"detail": "Unable to create Product Type."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -162,11 +162,11 @@ class CreateProductView(views.APIView):
         serializer = CreateProductSerializer(data=process_request)
         if serializer.is_valid():
             serializer.save()
-            return Response(data={"message": "Product created."}, status=status.HTTP_201_CREATED)
+            return Response(data={"detail": "Product created."}, status=status.HTTP_201_CREATED)
         else:
             print(serializer.errors)
             return Response(
-                data={"message": "Unable to create Product."},
+                data={"detail": "Unable to create Product."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -185,13 +185,13 @@ class CreateProductVariantView(views.APIView):
             has_failed_upload = process_media(variant, request.data)
             if has_failed_upload:
                 return Response(
-                    data={"message": "Variant created. Failed to upload attachments"}, status=status.HTTP_201_CREATED
+                    data={"detail": "Variant created. Failed to upload attachments"}, status=status.HTTP_201_CREATED
                 )
-            return Response(data={"message": "Variant created."}, status=status.HTTP_201_CREATED)
+            return Response(data={"detail": "Variant created."}, status=status.HTTP_201_CREATED)
         else:
             print(serializer.errors)
             return Response(
-                data={"message": "Unable to create Variant."},
+                data={"detail": "Unable to create Variant."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -208,7 +208,7 @@ class Test(views.APIView):
             success = ProductMedia.objects.create(**data)
             if success:
                 print(success)
-        return Response(data={"message": "Order updated."}, status=status.HTTP_201_CREATED)
+        return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
 
 
 # Front End

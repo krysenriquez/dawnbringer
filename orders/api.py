@@ -17,6 +17,7 @@ from orders.serializers import (
 from orders.services import (
     create_order_initial_history,
     get_or_create_customer,
+    notify_customer_on_order_update_by_email,
     process_order_request,
     process_order_history_request,
     process_attachments,
@@ -69,15 +70,15 @@ class CreateOrderView(views.APIView):
                 has_failed_upload = process_attachments(order, request.data)
                 if has_failed_upload:
                     return Response(
-                        data={"message": "Order created. Failed to upload attachments"},
+                        data={"detail": "Order created. Failed to upload attachments"},
                         status=status.HTTP_201_CREATED,
                     )
                 else:
-                    return Response(data={"message": "Order created."}, status=status.HTTP_201_CREATED)
+                    return Response(data={"detail": "Order created."}, status=status.HTTP_201_CREATED)
             else:
                 print(serializer.errors)
                 return Response(
-                    data={"message": "Unable to create Order."},
+                    data={"detail": "Unable to create Order."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -90,12 +91,15 @@ class CreateOrderHistoryView(views.APIView):
         if process_order_history:
             serializer = CreateOrderHistorySerializer(data=process_order_history)
             if serializer.is_valid():
-                serializer.save()
-                return Response(data={"message": "Order updated."}, status=status.HTTP_201_CREATED)
+                order_history = serializer.save()
+                if order_history.email_sent:
+                    email_msg = notify_customer_on_order_update_by_email(order_history)
+                    return Response(data={"detail": "Order updated. " + email_msg}, status=status.HTTP_201_CREATED)
+                return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
             else:
                 print(serializer.errors)
                 return Response(
-                    data={"message": "Unable to update Order."},
+                    data={"detail": "Unable to update Order."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -128,7 +132,7 @@ class GetOrderStatus(views.APIView):
             )
         else:
             return Response(
-                data={"message": "No Order Status available."},
+                data={"detail": "No Order Status available."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -164,3 +168,21 @@ class ShopOrderInfoViewSet(ModelViewSet):
                 )
 
                 return queryset
+
+
+class ShopOrderInfoGuestViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrdersSerializer
+    permission_classes = [IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        order_id = self.request.query_params.get("order_id", None)
+        if order_id:
+            queryset = (
+                Order.objects.filter(order_id=order_id)
+                .prefetch_related(Prefetch("histories", queryset=OrderHistory.objects.order_by("-id")))
+                .all()
+            )
+
+            return queryset

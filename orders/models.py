@@ -92,6 +92,9 @@ class Order(models.Model):
     account = models.ForeignKey(
         "accounts.Account", on_delete=models.SET_NULL, related_name="account_order", null=True, blank=True
     )
+    promo_code = models.ForeignKey(
+        "accounts.Code", on_delete=models.SET_NULL, related_name="order", null=True, blank=True
+    )
     total_amount = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
@@ -241,6 +244,9 @@ class OrderHistory(models.Model):
         null=True,
         blank=True,
     )
+    email_sent = models.BooleanField(
+        default=True,
+    )
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User", on_delete=models.SET_NULL, related_name="created_order_history", null=True, blank=True
@@ -263,18 +269,18 @@ class OrderHistory(models.Model):
     def get_order_default_note(self):
         match self.order_status:
             case OrderStatus.PENDING:
-                return 'Order Status moved to Pending'
+                return "Order Status moved to Pending"
             case OrderStatus.AWAITING_DELIVERY:
-                return 'Order Status moved to Awaiting Delivery'
+                return "Order Status moved to Awaiting Delivery"
             case OrderStatus.AWAITING_PICKUP:
-                return 'Order Status moved to Awaiting Pickup'
+                return "Order Status moved to Awaiting Pickup"
             case OrderStatus.ON_DELIVERY:
-                return 'Order Status moved to On Delivery'
+                return "Order Status moved to On Delivery"
             case OrderStatus.ON_PICKUP:
-                return 'Order Status moved to On Pickup'
+                return "Order Status moved to On Pickup"
             case OrderStatus.CANCELLED:
-                return 'Order Status moved to Cancelled'
+                return "Order Status moved to Cancelled"
             case OrderStatus.COMPLETED:
-                return 'Order Status moved to Completed'
+                return "Order Status moved to Completed"
             case OrderStatus.REFUNDED:
-                return 'Order Status moved to Refunded'
+                return "Order Status moved to Refunded"

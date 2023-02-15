@@ -2,6 +2,7 @@ import json
 from django.shortcuts import get_object_or_404
 from orders.models import Customer, Address, Order, OrderAttachments
 from orders.enums import OrderStatus
+from emails.services import construct_and_send_email_payload, get_email_template, render_template
 
 
 def transform_order_form_data_to_json(request):
@@ -85,6 +86,7 @@ def process_order_history_request(request):
             "order": order.pk,
             "order_status": request.data["order_status"],
             "comment": request.data["comment"],
+            "email_sent": request.data["email_sent"],
             "created_by": request.user.pk,
         }
 
@@ -102,3 +104,28 @@ def process_attachments(order, request):
             has_failed_upload = True
 
     return has_failed_upload
+
+
+def notify_customer_on_order_update_by_email(order_history):
+    order = get_object_or_404(Order, id=order_history.order.pk)
+
+    if order:
+        email_template = get_email_template(order_history.order_status)
+        email_subject = render_template(email_template.subject, {})
+        if order.account:
+            email_body = render_template(
+                email_template.body,
+                {
+                    "customer": order.account.get_account_name,
+                    "link": "http://localhost:8000/order?id=" + str(order.order_id),
+                },
+            )
+            return construct_and_send_email_payload(email_subject, email_body, order.account.user.email_address)
+
+        email_body = render_template(
+            email_template.body,
+            {"customer": order.customer.name, "link": "http://localhost:8000/order?id=" + str(order.order_id)},
+        )
+        return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
+
+    return None

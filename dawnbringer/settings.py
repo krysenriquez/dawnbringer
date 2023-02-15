@@ -9,24 +9,29 @@ SECRET_KEY = "django-insecure-gm=#!p)=mfvtjelrp-gjvjxnqo06#tek-5@f!_ei96qw8@g1^_
 DEBUG = True
 LIVE = False
 
-if DEBUG:
+if DEBUG and not LIVE:
     ALLOWED_HOSTS = ["*"]
 
 CORS_ORIGIN_ALLOW_ALL = False
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-]
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
+
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://0.0.0.0:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://0.0.0.0:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
 ]
 
 INSTALLED_APPS = [
@@ -45,6 +50,7 @@ INSTALLED_APPS = [
     "products",
     "orders",
     "shop",
+    "emails",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +85,12 @@ TEMPLATES = [
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {"anon": "20/minute", "user": "10000/day"},
+    "DATE_INPUT_FORMATS": ["iso-8601", "%Y-%m-%dT%H:%M:%S.%fZ"],
 }
 
 SIMPLE_JWT = {
@@ -114,6 +126,16 @@ WSGI_APPLICATION = "dawnbringer.wsgi.application"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
     "filters": {
         "require_debug_true": {
             "()": "django.utils.log.RequireDebugTrue",
@@ -126,7 +148,7 @@ LOGGING = {
         },
     },
     "loggers": {
-        "dawnbringerLogger": {
+        "odysseyLogger": {
             "handlers": ["console"],
             "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": True,
@@ -134,20 +156,16 @@ LOGGING = {
     },
 }
 
-if DEBUG:
-    for logger in LOGGING["loggers"]:
-        LOGGING["loggers"][logger]["handlers"] = ["console"]
-
 if LIVE:
     if DEBUG:
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql_psycopg2",
-                "NAME": "dawnbringerdb",
+                "NAME": "dawnbringerdb_uat",
                 "USER": "dawnbringer",
                 "PASSWORD": "D@wnbr!ng3r",
                 "HOST": "localhost",
-                "PORT": "5433",
+                "PORT": "5432",
             }
         }
     else:
@@ -158,7 +176,7 @@ if LIVE:
                 "USER": "dawnbringer",
                 "PASSWORD": "D@wnbr!ng3r",
                 "HOST": "localhost",
-                "PORT": "5433",
+                "PORT": "5432",
             }
         }
 else:
@@ -210,7 +228,6 @@ STATICFILES_DIRS = [
     Path(BASE_DIR, "statics"),
 ]
 
-# For Prod
 if not DEBUG:
     STATIC_ROOT = Path(BASE_DIR, "static_cdn")
 
@@ -218,3 +235,5 @@ MEDIA_ROOT = Path.absolute(Path(BASE_DIR, "media"))
 MEDIA_URL = "/media/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

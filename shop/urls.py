@@ -1,7 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
 from shop.api import PageContentsViewSet, PageComponentsViewSet, SectionComponentsViewSet
-from orders.api import CreateOrderView, ShopOrderInfoViewSet, ShopOrdersListViewSet
+from orders.api import CreateOrderView, ShopOrdersListViewSet, ShopOrderInfoViewSet, ShopOrderInfoGuestViewSet
 from products.api import (
     ShopProductTypesListViewSet,
     ShopProductsListViewSet,
@@ -28,6 +28,7 @@ router.register(r"getproduct", ShopProductViewSet)
 router.register(r"getproductvariant", ShopProductsVariantViewSet)
 router.register(r"getbranch", ShopBranchViewSet)
 router.register(r"getorder", ShopOrderInfoViewSet)
+router.register(r"getorderguest", ShopOrderInfoGuestViewSet)
 
 urlpatterns = [
     path("createorder/", CreateOrderView.as_view()),

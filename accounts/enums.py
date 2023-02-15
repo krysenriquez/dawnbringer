@@ -15,6 +15,11 @@ class Gender(models.TextChoices):
     FEMALE = "FEMALE", _("Female")
 
 
+class AddressType(models.TextChoices):
+    BILLING = "BILLING", _("Billing")
+    SHIPPING = "SHIPPING", _("Shipping")
+
+
 class CodeStatus(models.TextChoices):
     ACTIVE = "ACTIVE", _("Active")
     DEACTIVATED = "DEACTIVATED", _("Deactivated")

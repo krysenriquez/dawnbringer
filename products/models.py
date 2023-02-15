@@ -1,4 +1,5 @@
 import uuid
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
@@ -36,6 +37,7 @@ class ProductType(models.Model):
         blank=True,
         null=True,
     )
+    product_type_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
@@ -99,6 +101,7 @@ class Product(models.Model):
         blank=True,
         null=True,
     )
+    product_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
@@ -153,12 +156,13 @@ class ProductVariant(models.Model):
         null=True,
         blank=True,
     )
+    variant_image = models.ImageField(blank=True, upload_to=product_variant_image_directory)
     variant_description = models.TextField(
         max_length=255,
         blank=True,
         null=True,
     )
-    variant_image = models.ImageField(blank=True, upload_to=product_variant_image_directory)
+    variant_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
