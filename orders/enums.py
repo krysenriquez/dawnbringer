@@ -27,3 +27,11 @@ class PaymentMethods(models.TextChoices):
     CASH = "CASH", _("Cash")
     CARD = "CARD", _("Card")
     BANK_TRANSFER = "BANK_TRANSFER", _("Bank Transfer")
+    GCASH = "GCASH", _("G-Cash")
+
+
+class DeliveryStatus(models.TextChoices):
+    PREPARING = "PREPARING", _("Preparing")
+    IN_TRANSIT = "IN_TRANSIT", _("In Transit")
+    DELIVERED = "DELIVERED", _("Delivered")
+    RETURNED = "RETURNED", _("Returned")

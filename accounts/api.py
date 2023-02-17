@@ -4,35 +4,23 @@ from rest_framework.response import Response
 from accounts.enums import AccountStatus
 from accounts.models import Account
 from accounts.serializers import (
+    AccountAvatarSerializer,
     AccountSerializer,
-    AccountProfileSerializer,
+    AccountInfoSerializer,
     AccountListSerializer,
 )
 from accounts.services import (
     activate_account_login,
-    create_registration_link,
     get_registration_link_object,
+    verify_code_details,
     verify_registration_link,
     process_create_account_request,
     update_registration_status,
 )
 from users.enums import UserType
+from users.models import User
 from users.services import create_new_user
-from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
-
-
-class AccountProfileViewSet(ModelViewSet):
-    queryset = Account.objects.all()
-    serializer_class = AccountProfileSerializer
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            account_id = self.request.query_params.get("account_id", None)
-            queryset = Account.objects.exclude(is_deleted=True).filter(account_id=account_id).all()
-            if queryset.exists():
-                return queryset
+from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsMemberUser, IsStaffUser
 
 
 class AccountListViewSet(ModelViewSet):
@@ -48,6 +36,32 @@ class AccountListViewSet(ModelViewSet):
                 return queryset
         else:
             return Account.objects.none()
+
+
+class AccountProfileViewSet(ModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountInfoSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            account_id = self.request.query_params.get("account_id", None)
+            queryset = Account.objects.exclude(is_deleted=True).filter(account_id=account_id).all()
+            if queryset.exists():
+                return queryset
+
+
+class AccountAvatarViewSet(ModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountAvatarSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+
+    def get_queryset(self):
+        user = User.objects.get(id=self.request.user.pk, is_active=True)
+        if user is not None:
+            queryset = Account.objects.filter(user=user)
+            return queryset
 
 
 class RegisterAccountView(views.APIView):
@@ -119,3 +133,21 @@ class VerifyAccountView(views.APIView):
                     data={"detail": "Account does not exist."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+
+
+# Shop
+class VerifyCodeView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        is_verified, message, code = verify_code_details(request)
+
+        if not is_verified:
+            return Response(
+                data={"details": message},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            data={"details": message, "code": {"code_id": code.id, "code": code.code, "code_status": code.status}},
+            status=status.HTTP_200_OK,
+        )

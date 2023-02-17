@@ -10,15 +10,10 @@ from products.models import (
     ProductVariantMeta,
     Price,
     PointValue,
-    Transfer,
-    Transfer,
+    Supply,
+    SupplyDetails,
+    SupplyHistory,
 )
-
-
-class TransfersSerializer(ModelSerializer):
-    class Meta:
-        model = Transfer
-        fields = "__all__"
 
 
 class PointValuesSerializer(ModelSerializer):
@@ -43,6 +38,20 @@ class PricesSerializer(ModelSerializer):
     class Meta:
         model = Price
         fields = "__all__"
+
+
+class ProductVariantOptionsSerializer(ModelSerializer):
+    product_name = serializers.CharField(source="product.product_name", required=False)
+
+    class Meta:
+        model = ProductVariant
+        fields = [
+            "id",
+            "variant_image",
+            "variant_name",
+            "product_name",
+            "sku",
+        ]
 
 
 class ProductVariantsListSerializer(ModelSerializer):
@@ -95,13 +104,11 @@ class CreateProductVariantsSerializer(ModelSerializer):
     price = PricesSerializer(required=False)
     meta = ProductVariantMetaSerializer(required=False)
     point_values = PointValuesSerializer(many=True, required=False)
-    supplies = TransfersSerializer(many=True, required=False)
 
     def create(self, validated_data):
         price = validated_data.pop("price")
         meta = validated_data.pop("meta")
         point_values = validated_data.pop("point_values")
-        supplies = validated_data.pop("supplies")
 
         variant = ProductVariant.objects.create(**validated_data)
 
@@ -111,9 +118,6 @@ class CreateProductVariantsSerializer(ModelSerializer):
 
         for point_value in point_values:
             PointValue.objects.create(**point_value, variant=variant)
-
-        for supply in supplies:
-            Transfer.objects.create(**supply, variant=variant)
 
         return variant
 
@@ -191,7 +195,7 @@ class ProductMetaSerializer(ModelSerializer):
 
 
 class ProductOptionsSerializer(ModelSerializer):
-    product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
+    product_type_name = serializers.CharField(source="product_type.product_type", required=False)
 
     class Meta:
         model = Product
@@ -300,7 +304,7 @@ class ProductTypeOptionsSerializer(ModelSerializer):
         ]
 
 
-class ProductTypeListSerializer(ModelSerializer):
+class ProductTypesListSerializer(ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     class Meta:
@@ -371,6 +375,89 @@ class CreateProductTypeSerializer(ModelSerializer):
     class Meta:
         model = ProductType
         fields = "__all__"
+
+
+# Supplies
+class SupplyHistorySerializer(ModelSerializer):
+    supply_stage = serializers.IntegerField(source="get_supply_status_stage", required=False)
+    supply_note = serializers.CharField(source="get_supply_default_note", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+
+    class Meta:
+        model = SupplyHistory
+        fields = [
+            "id",
+            "supply_status",
+            "supply_stage",
+            "comment",
+            "supply_note",
+            "created",
+            "created_by_name",
+            "created_by",
+        ]
+        ordering = ["id"]
+
+
+class CreateSupplyHistorySerializer(ModelSerializer):
+    class Meta:
+        model = SupplyHistory
+        fields = ["supply", "supply_status", "comment", "created_by"]
+
+
+class SupplyDetailsSerializer(ModelSerializer):
+    variant_sku = serializers.CharField(source="variant.sku", required=False)
+    variant_name = serializers.CharField(source="variant.variant_name", required=False)
+
+    class Meta:
+        model = SupplyDetails
+        fields = [
+            "variant_sku",
+            "variant_name",
+            "quantity",
+        ]
+
+
+class SuppliesListSerializer(ModelSerializer):
+    supply_number = serializers.CharField(source="get_supply_number", required=False)
+    branch_from_name = serializers.CharField(source="branch.branch_name", required=False)
+    branch_to_name = serializers.CharField(source="branch.branch_name", required=False)
+    sku = serializers.CharField(source="variant.sku", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    current_supply_status = serializers.CharField(source="get_last_order_status", required=False)
+
+    class Meta:
+        model = Supply
+        fields = [
+            "supply_id",
+            "supply_number",
+            "branch_from_name",
+            "branch_to_name",
+            "current_supply_status",
+            "created_by_name",
+        ]
+
+
+class SuppliesInfoSerializer(ModelSerializer):
+    variant = SupplyDetailsSerializer(many=True, required=False)
+    histories = SupplyHistorySerializer(many=True, required=False)
+    branch_from_name = serializers.CharField(source="branch.branch_name", required=False)
+    branch_to_name = serializers.CharField(source="branch.branch_name", required=False)
+    sku = serializers.CharField(source="variant.sku", required=False)
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+
+    class Meta:
+        model = Supply
+        fields = [
+            "branch_from_name",
+            "branch_to_name",
+            "variant",
+            "supply_status",
+            "tracking_number",
+            "carrier",
+            "reference_number",
+            "comment",
+            "created_by_name",
+        ]
 
 
 # Front-End

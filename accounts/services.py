@@ -2,11 +2,12 @@ import string, random
 import datetime
 from tzlocal import get_localzone
 from django.core.signing import Signer, BadSignature
-from accounts.enums import AccountStatus
-from accounts.models import Registration
+from django.shortcuts import get_object_or_404
+from accounts.enums import AccountStatus, CodeStatus
+from accounts.models import Registration, Code
 from orders.models import Order
-from settings.enums import Settings
-from settings.services import get_setting
+from core.enums import Settings
+from core.services import get_setting
 from users.services import create_new_user
 
 
@@ -14,18 +15,6 @@ def generate_code():
     size = int(get_setting(Settings.CODE_LENGTH))
     chars = string.ascii_uppercase + string.digits
     return "".join(random.choice(chars) for _ in range(size))
-
-
-def create_registration_link(request):
-    order = Order.objects.get(id=1)
-    registration = Registration.objects.get(order=order)
-    signer = Signer()
-    data = {"registration_id": registration.id, "customer": registration.order.customer.id}
-    signed_obj = signer.sign_object(data)
-
-    url = request.build_absolute_uri("https://member.lereussi.com/registration?data=" + signed_obj)
-    print(url)
-    return url
 
 
 def verify_registration_link(data):
@@ -70,7 +59,7 @@ def process_create_account_request(request, registration):
 
     order = Order.objects.get(id=registration.order.pk)
     if order.promo_code:
-        data["parent"] = order.promo_code.account.pk
+        data["referrer"] = order.promo_code.account.pk
 
     data["code"] = create_account_code()
 
@@ -95,3 +84,13 @@ def activate_account_login(account, user):
     account.user = create_new_user(user)
     account.account_status = AccountStatus.ACTIVE
     account.save()
+
+
+def verify_code_details(request):
+    code = get_object_or_404(Code, code=request.data["activation_code"])
+
+    match code.status:
+        case CodeStatus.ACTIVE:
+            return True, "Code valid", code
+        case CodeStatus.DEACTIVATED:
+            return False, "Code invalid", {}

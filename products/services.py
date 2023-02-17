@@ -1,6 +1,7 @@
 import json
 from django.shortcuts import get_object_or_404
-from products.models import ProductMedia, ProductType
+from products.enums import SupplyStatus
+from products.models import ProductMedia, Supply
 from settings.models import Branch
 
 
@@ -45,10 +46,11 @@ def transform_variant_form_data_to_json(request):
 
     return data
 
-def create_variant_initial_transfer(data, request):
+
+def create_variant_initial_supply(data, request):
     main = get_object_or_404(Branch, branch_name="Main Office")
 
-    transfer = [
+    supply = [
         {
             "branch": main.pk,
             "quantity": data["quantity"],
@@ -57,7 +59,7 @@ def create_variant_initial_transfer(data, request):
         }
     ]
 
-    return transfer
+    return supply
 
 
 def process_media(variant, request):
@@ -71,3 +73,40 @@ def process_media(variant, request):
             has_failed_upload = True
 
     return has_failed_upload
+
+
+def create_supply_status_filter(branch_id, supply_id, supply_status):
+    StatusFilter = []
+    branch = Branch.objects.get(branch_id=branch_id)
+    supply = Supply.objects.get(supply_id=supply_id)
+
+    # Supplier
+    if supply.branch_from == branch and supply.branch_to != branch:
+        match supply_status:
+            case SupplyStatus.PENDING:
+                StatusFilter.append(SupplyStatus.ORDER_RECEIVED)
+                StatusFilter.append(SupplyStatus.BACK_ORDERED)
+                StatusFilter.append(SupplyStatus.PREPARING)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DELIVERED)
+            case SupplyStatus.ORDER_RECEIVED:
+                StatusFilter.append(SupplyStatus.PENDING)
+                StatusFilter.append(SupplyStatus.CANCELLED)
+            case _:
+                StatusFilter.append(SupplyStatus.CANCELLED)
+    # Requestor
+    elif supply.branch_from != branch and supply.branch_to == branch:
+        match supply_status:
+            case SupplyStatus.PENDING:
+                StatusFilter.append(SupplyStatus.ORDER_RECEIVED)
+                StatusFilter.append(SupplyStatus.BACK_ORDERED)
+                StatusFilter.append(SupplyStatus.PREPARING)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DELIVERED)
+            case _:
+                StatusFilter.append(SupplyStatus.CANCELLED)
+    # Both
+    else:
+        pass
+
+    return StatusFilter

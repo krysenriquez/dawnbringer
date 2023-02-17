@@ -1,39 +1,45 @@
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from rest_framework import status, views, permissions
 from rest_framework.parsers import MultiPartParser
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from products.enums import Status
+from products.enums import Status, SupplyStatus
 from products.models import (
     ProductType,
     Product,
     ProductVariant,
     ProductMedia,
     ProductVariantMeta,
+    Supply,
 )
 from products.serializers import (
     CreateProductSerializer,
     CreateProductTypeSerializer,
     CreateProductVariantsSerializer,
-    ProductTypeInfoSerializer,
-    ProductTypeListSerializer,
-    ProductsListSerializer,
-    ProductVariantsListSerializer,
-    ProductInfoSerializer,
-    ProductVariantInfoSerializer,
     ProductTypeOptionsSerializer,
+    ProductTypesListSerializer,
+    ProductTypeInfoSerializer,
     ProductOptionsSerializer,
+    ProductsListSerializer,
+    ProductInfoSerializer,
+    ProductVariantOptionsSerializer,
+    ProductVariantsListSerializer,
+    ProductVariantInfoSerializer,
+    SuppliesListSerializer,
+    SuppliesInfoSerializer,
     ShopProductsVariantsSerializer,
     ShopProductsSerializer,
     ShopProductTypesSerializer,
 )
 from products.services import (
-    create_variant_initial_transfer,
+    create_supply_status_filter,
+    create_variant_initial_supply,
     process_media,
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
 )
+from settings.models import Branch
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
 
@@ -49,7 +55,7 @@ class ProductTypeOptionsViewSet(ModelViewSet):
 
 class ProductTypesListViewSet(ModelViewSet):
     queryset = ProductType.objects.all()
-    serializer_class = ProductTypeListSerializer
+    serializer_class = ProductTypesListSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
@@ -100,6 +106,16 @@ class ProductInfoViewSet(ModelViewSet):
             return Product.objects.exclude(is_deleted=True).filter(product_id=product_id)
 
 
+class ProductVariantOptionsViewSet(ModelViewSet):
+    queryset = ProductVariant.objects.all()
+    serializer_class = ProductVariantOptionsSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return ProductVariant.objects.all().order_by("product")
+
+
 class ProductVariantsListViewSet(ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantsListSerializer
@@ -130,6 +146,41 @@ class ProductVariantInfoViewSet(ModelViewSet):
         sku = self.request.query_params.get("sku", None)
         if sku:
             return ProductVariant.objects.exclude(is_deleted=True).filter(sku=sku)
+
+
+class SuppliesListViewSet(ModelViewSet):
+    queryset = Supply.objects.all()
+    serializer_class = SuppliesListSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
+        branch = Branch.objects.get(branch_id=branch_id)
+        if branch.can_supply:
+            return Supply.objects.filter(Q(branch_to__branch_id=branch_id) | Q(branch_from__branch_id=branch_id))
+
+        if branch_id:
+            return Supply.objects.filter(branch_to__branch_id=branch_id)
+
+
+class SuppliesInfoViewSet(ModelViewSet):
+    queryset = Supply.objects.all()
+    serializer_class = SuppliesInfoSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        supply_id = self.request.query_params.get("supply_id", None)
+        branch_id = self.request.query_params.get("branch_id", None)
+        branch = Branch.objects.get(branch_id=branch_id)
+        if branch.can_supply:
+            return Supply.objects.filter(
+                Q(supply_id=supply_id) & (Q(branch_to__branch_id=branch_id) | Q(branch_from__branch_id=branch_id))
+            )
+
+        if branch_id:
+            return Supply.objects.filter(supply_id=supply_id, branch_to__branch_id=branch_id)
 
 
 # POST Views
@@ -177,7 +228,7 @@ class CreateProductVariantView(views.APIView):
     def post(self, request, *args, **kwargs):
         process_request = transform_variant_form_data_to_json(request.data)
         process_request["created_by"] = request.user.pk
-        process_request["supplies"] = create_variant_initial_transfer(process_request, request)
+        process_request["supplies"] = create_variant_initial_supply(process_request, request)
 
         serializer = CreateProductVariantsSerializer(data=process_request)
         if serializer.is_valid():
@@ -196,19 +247,31 @@ class CreateProductVariantView(views.APIView):
             )
 
 
-class Test(views.APIView):
-    permission_classes = []
+class GetSupplyStatus(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        attachments = dict((request.data).lists())["attachments"]
-        print(attachments)
-        variant = ProductVariant.objects.get(id=2)
-        for attachment in attachments:
-            data = {"variant": variant, "attachment": attachment}
-            success = ProductMedia.objects.create(**data)
-            if success:
-                print(success)
-        return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
+        branch_id = request.data.get("branch_id")
+        supply_id = request.data.get("supply_id")
+        supply_status = request.data.get("supply_status")
+
+        StatusFilter = create_supply_status_filter(branch_id, supply_id, supply_status)
+
+        status_arr = []
+        for ss in SupplyStatus:
+            if ss not in StatusFilter and ss != supply_status:
+                status_arr.append(ss)
+
+        if status_arr:
+            return Response(
+                data={"statuses": status_arr},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"detail": "No Order Status available."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 # Front End

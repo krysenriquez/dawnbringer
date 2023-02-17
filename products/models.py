@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
-from products.enums import Status
+from products.enums import Status, SupplyStatus
 
 
 def product_type_image_directory(instance, filename):
@@ -234,53 +234,6 @@ class Price(models.Model):
         return "%s - %s" % (self.variant, self.price)
 
 
-class Transfer(models.Model):
-    branch = models.ForeignKey(
-        "settings.Branch", on_delete=models.CASCADE, related_name="transfer", null=True, blank=True
-    )
-    variant = models.ForeignKey(
-        "products.ProductVariant", on_delete=models.CASCADE, related_name="supplies", null=True, blank=True
-    )
-    quantity = models.IntegerField(
-        default=0,
-        blank=True,
-    )
-    estimated_arrival = models.DateField(
-        blank=True,
-        null=True,
-    )
-    tracking_number = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    carrier = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    reference_number = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    comment = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    created_by = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        related_name="created_transfer",
-        null=True,
-    )
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return "%s - %s" % (self.variant, self.quantity)
-
-
 class PointValue(models.Model):
     variant = models.ForeignKey(
         "products.ProductVariant",
@@ -289,7 +242,7 @@ class PointValue(models.Model):
         null=True,
     )
     membership_level = models.ForeignKey(
-        "settings.MembershipLevel",
+        "core.MembershipLevel",
         on_delete=models.SET_NULL,
         related_name="point_value_per_product",
         null=True,
@@ -319,3 +272,146 @@ class ProductVariantMeta(models.Model):
         blank=True,
         null=True,
     )
+
+
+class Supply(models.Model):
+    supply_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    branch_from = models.ForeignKey(
+        "settings.Branch", on_delete=models.CASCADE, related_name="supplies_from", null=True, blank=True
+    )
+    branch_to = models.ForeignKey(
+        "settings.Branch", on_delete=models.CASCADE, related_name="supplies_to", null=True, blank=True
+    )
+    tracking_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    carrier = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    reference_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    comment = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="created_supply",
+        null=True,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def get_supply_number(self):
+        return str(self.id).zfill(5)
+
+    def get_last_supply_status(self):
+        try:
+            return self.histories.latest("created").supply_status
+        except:
+            return None
+
+    def get_last_supply_stage(self):
+        try:
+            match self.histories.latest("created").supply_status:
+                case SupplyStatus.PENDING:
+                    return 1
+                case SupplyStatus.ORDER_RECEIVED | SupplyStatus.BACK_ORDERED:
+                    return 2
+                case SupplyStatus.PREPARING:
+                    return 3
+                case SupplyStatus.IN_TRANSIT:
+                    return 3
+                case SupplyStatus.CANCELLED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
+                    return 4
+                case _:
+                    None
+        except:
+            return None
+
+    def __str__(self):
+        return "%s - %s" % (self.branch_from, self.branch_to)
+
+
+class SupplyDetails(models.Model):
+    supply = models.ForeignKey(
+        "products.Supply", on_delete=models.CASCADE, related_name="details", null=True, blank=True
+    )
+    variant = models.ForeignKey(
+        "products.ProductVariant", on_delete=models.CASCADE, related_name="supplies", null=True, blank=True
+    )
+    quantity = models.IntegerField(
+        default=0,
+        blank=True,
+    )
+
+    def __str__(self):
+        return "%s : %s - %s" % (self.supply, self.variant, self.quantity)
+
+
+class SupplyHistory(models.Model):
+    supply = models.ForeignKey(
+        "products.Supply", on_delete=models.CASCADE, related_name="histories", null=True, blank=True
+    )
+    supply_status = models.CharField(
+        max_length=255,
+        choices=SupplyStatus.choices,
+        default=SupplyStatus.PENDING,
+    )
+    comment = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    notes = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "users.User", on_delete=models.SET_NULL, related_name="created_supply_history", null=True, blank=True
+    )
+
+    def __str__(self):
+        return "%s - %s" % (self.order, self.order_status)
+
+    def get_supply_status_stage(self):
+        match self.supply_status:
+            case SupplyStatus.PENDING:
+                return 1
+            case SupplyStatus.ORDER_RECEIVED | SupplyStatus.BACK_ORDERED:
+                return 2
+            case SupplyStatus.PREPARING:
+                return 3
+            case SupplyStatus.IN_TRANSIT:
+                return 3
+            case SupplyStatus.CANCELLED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
+                return 4
+
+    def get_supply_default_note(self):
+        match self.supply_status:
+            case SupplyStatus.PENDING:
+                return "Supply Request has been created"
+            case SupplyStatus.CANCELLED:
+                return "Supply Request has been cancelled"
+            case SupplyStatus.ORDER_RECEIVED:
+                return "Supply Request has been received"
+            case SupplyStatus.BACK_ORDERED:
+                return "Supply Request moved to back ordered"
+            case SupplyStatus.PREPARING:
+                return "Supply Request is currently being prepared"
+            case SupplyStatus.IN_TRANSIT:
+                return "Supply Request is currently in transit"
+            case SupplyStatus.DELIVERED:
+                return "Supply Request has been delivered"
+            case SupplyStatus.DENIED:
+                return "Supply Request has been denied"

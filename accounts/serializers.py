@@ -100,7 +100,7 @@ class AccountSerializer(ModelSerializer):
     address_info = AddressInfoSerializer(required=False)
     avatar_info = AvatarInfoSerializer(required=False)
     code = CodeSerializer(required=False)
-    parent_name = serializers.CharField(source="self.parent.get_fullname", required=False)
+    referrer_name = serializers.CharField(source="self.referrer.get_fullname", required=False)
 
     def create(self, validated_data):
         personal_info = validated_data.pop("personal_info")
@@ -193,13 +193,34 @@ class AccountSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class AccountProfileSerializer(ModelSerializer):
+class AccountListSerializer(ModelSerializer):
+    account_name = serializers.CharField(source="get_account_name", required=False)
+    account_number = serializers.CharField(source="get_account_number", required=False)
+    referrer_account_name = serializers.CharField(source="referrer.get_account_name", required=False)
+    referrer_account_number = serializers.CharField(source="referrer.get_account_number", required=False)
+    user_status = serializers.CharField(source="user.is_active", required=False)
+
+    class Meta:
+        model = Account
+        fields = [
+            "account_id",
+            "account_name",
+            "account_number",
+            "referrer_account_name",
+            "referrer_account_number",
+            "account_status",
+            "user_status",
+            "created",
+        ]
+
+
+class AccountInfoSerializer(ModelSerializer):
     personal_info = PersonalInfoSerializer(required=False)
     contact_info = ContactInfoSerializer(required=False)
     address_info = AddressInfoSerializer(required=False)
     avatar_info = AvatarInfoSerializer(required=False)
-    parent_name = serializers.CharField(source="parent.get_fullname", required=False)
-    parent_account_number = serializers.CharField(source="parent.get_account_number", required=False)
+    referrer_name = serializers.CharField(source="referrer.get_fullname", required=False)
+    referrer_account_number = serializers.CharField(source="referrer.get_account_number", required=False)
     full_name = serializers.CharField(source="get_full_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
     user_status = serializers.CharField(source="user.is_active", required=False)
@@ -209,38 +230,12 @@ class AccountProfileSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class AccountListSerializer(ModelSerializer):
-    account_name = serializers.CharField(source="get_account_name", required=False)
-    account_number = serializers.CharField(source="get_account_number", required=False)
-    parent_account_name = serializers.CharField(source="parent.get_account_name", required=False)
-    parent_account_number = serializers.CharField(source="parent.get_account_number", required=False)
-    user_status = serializers.CharField(source="user.is_active", required=False)
-
-    class Meta:
-        model = Account
-        fields = [
-            "account_id",
-            "account_name",
-            "account_number",
-            "parent_account_name",
-            "parent_account_number",
-            "account_status",
-            "user_status",
-            "created",
-        ]
-
-
-class AvatarInfoSerializer(ModelSerializer):
-    class Meta:
-        model = AvatarInfo
-        fields = ["file_attachment"]
-
-
 class AccountAvatarSerializer(ModelSerializer):
-    avatar_info = AvatarInfoSerializer(required=False)
-    account_name = serializers.CharField(read_only=True)
+    account_avatar = serializers.ImageField(source="avatar_info.file_attachment", required=False)
+    account_name = serializers.CharField(source="get_full_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
+    account_code = serializers.CharField(source="code.code", required=False)
 
     class Meta:
         model = Account
-        fields = ["account_id", "account_name", "account_number", "avatar_info"]
+        fields = ["account_id", "account_name", "account_number", "account_avatar", "account_code"]

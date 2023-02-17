@@ -69,7 +69,7 @@ class Address(models.Model):
     address_type = models.CharField(
         max_length=11,
         choices=AddressType.choices,
-        default=AddressType.BILLING,
+        default=AddressType.SHIPPING,
     )
 
     def __str__(self):
@@ -284,3 +284,41 @@ class OrderHistory(models.Model):
                 return "Order Status moved to Completed"
             case OrderStatus.REFUNDED:
                 return "Order Status moved to Refunded"
+
+
+class Delivery(models.Model):
+    branch = models.ForeignKey(
+        "settings.Branch", on_delete=models.CASCADE, related_name="deliveries", null=True, blank=True
+    )
+    order = models.ForeignKey(
+        "orders.Order", on_delete=models.CASCADE, related_name="deliveries", null=True, blank=True
+    )
+    estimated_arrival = models.DateField(
+        blank=True,
+        null=True,
+    )
+    tracking_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    carrier = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    comment = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="created_delivery",
+        null=True,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "%s - %s" % (self.variant, self.quantity)

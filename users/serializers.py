@@ -3,8 +3,6 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from users.models import *
 
-# from accounts.serializers import AccountAvatarSerializer
-
 
 class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
@@ -88,12 +86,3 @@ class UserSerializer(ModelSerializer):
             "username",
             "email_address",
         ]
-
-
-# class UserAccountSerializer(ModelSerializer):
-#     account_user = AccountAvatarSerializer(many=True, required=False)
-#     remaining = serializers.IntegerField(required=False)
-
-#     class Meta:
-#         model = User
-#         fields = ["account_user", "remaining"]

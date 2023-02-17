@@ -1,21 +1,11 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
-from settings.api import (
-    BranchAssignmentsViewSet,
-    SettingsViewSet,
-    MembershipLevelsViewSet,
-    UpdateSettingsView,
-    UpdateMembershipLevelsView,
-)
+from settings.api import BranchAssignmentsViewSet, BranchViewSet
 
 router = DefaultRouter()
-router.register(r"getadminsettings", SettingsViewSet)
-router.register(r"getmembershiplevels", MembershipLevelsViewSet)
 router.register(r"getbranchassignments", BranchAssignmentsViewSet)
+router.register(r"getbranches", BranchViewSet)
 
-urlpatterns = [
-    path("updateadminsettings/", UpdateSettingsView.as_view()),
-    path("updatemembershiplevels/", UpdateMembershipLevelsView.as_view()),
-]
+urlpatterns = []
 
 urlpatterns += router.urls

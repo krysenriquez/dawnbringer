@@ -10,7 +10,7 @@ class AccountAdmin(admin.ModelAdmin):
         "last_name",
         "account_status",
         "user",
-        "parent",
+        "referrer",
         "created",
     )
 

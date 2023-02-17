@@ -11,9 +11,22 @@ def account_code_directory(instance, filename):
     return "accounts/{0}/code/{1}".format(instance.account.account_id, filename)
 
 
+class Registration(models.Model):
+    registration_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    order = models.OneToOneField("orders.Order", on_delete=models.CASCADE, related_name="registration")
+    registration_status = models.CharField(
+        max_length=11,
+        choices=AccountStatus.choices,
+        default=AccountStatus.PENDING,
+    )
+
+    def __str__(self):
+        return "%s" % (self.order)
+
+
 class Account(models.Model):
     account_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    parent = models.ForeignKey(
+    referrer = models.ForeignKey(
         "self",
         related_name="children",
         on_delete=models.SET_NULL,
@@ -72,13 +85,38 @@ class Account(models.Model):
             account.get_all_children(children)
         return children
 
-    def get_all_parents(self, parents=None):
-        if parents is None:
-            parents = []
-        if self.parent:
-            parents.append(self.parent)
-            self.parent.get_all_parents(parents)
-        return parents
+    def get_all_referrers(self, referrers=None):
+        if referrers is None:
+            referrers = []
+        if self.referrer:
+            referrers.append(self.referrer)
+            self.referrer.get_all_referrers(referrers)
+        return referrers
+
+    def get_four_level_referrers(self, referrers=None, level=None):
+        if referrers is None:
+            referrers = []
+            level = 1
+            referrers.append(
+                {
+                    "account": self,
+                    "level": level,
+                }
+            )
+        if self.referrer:
+            level = level + 1
+            if level >= 4:
+                return referrers
+
+            referrers.append(
+                {
+                    "account": self.referrer,
+                    "level": level,
+                }
+            )
+
+            self.referrer.get_four_level_referrers(referrers, level)
+        return referrers
 
     def __str__(self):
         return "%s" % (self.get_full_name())
@@ -150,7 +188,7 @@ class AddressInfo(models.Model):
     address_type = models.CharField(
         max_length=11,
         choices=AddressType.choices,
-        default=AddressType.BILLING,
+        default=AddressType.SHIPPING,
     )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -192,14 +230,14 @@ class Code(models.Model):
         )
 
 
-class Registration(models.Model):
-    registration_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    order = models.OneToOneField("orders.Order", on_delete=models.CASCADE, related_name="registration")
-    registration_status = models.CharField(
-        max_length=11,
-        choices=AccountStatus.choices,
-        default=AccountStatus.PENDING,
-    )
+class CashoutMethod(models.Model):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="cashout_methods")
+    account_name = models.CharField(max_length=255, null=True, blank=True)
+    account_number = models.CharField(max_length=255, null=True, blank=True)
+    method = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return "%s" % (self.order)
+        return "%s : %s - %s %s" % (self.account, self.account_name, self.account_number, self.method)
+
+    def get_method_name(self):
+        return "%s - %s" % (self.method, self.account_number)

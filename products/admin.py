@@ -7,7 +7,7 @@ from products.models import (
     ProductVariant,
     ProductVariantMeta,
     ProductMedia,
-    Transfer,
+    Supply,
     Price,
     PointValue,
 )
@@ -19,6 +19,6 @@ admin.site.register(ProductMeta)
 admin.site.register(ProductVariant)
 admin.site.register(ProductVariantMeta)
 admin.site.register(ProductMedia)
-admin.site.register(Transfer)
+admin.site.register(Supply)
 admin.site.register(Price)
 admin.site.register(PointValue)

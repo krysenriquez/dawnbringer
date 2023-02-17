@@ -1,21 +1,9 @@
 import uuid
 from django.db import models
-from settings.enums import Settings
 
 
 def company_image_directory(instance, filename):
     return "company/{0}/image/{1}".format(instance.id, filename)
-
-
-class Setting(models.Model):
-    property = models.CharField(max_length=255, default=None, choices=Settings.choices)
-    value = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
-
-    class Meta:
-        ordering = ["property"]
-
-    def __str__(self):
-        return "%s - %s" % (self.property, self.value)
 
 
 class Company(models.Model):
@@ -92,10 +80,16 @@ class Branch(models.Model):
         null=True,
         blank=True,
     )
-    is_active = models.BooleanField(
+    is_main = models.BooleanField(
         default=False,
     )
     can_deliver = models.BooleanField(
+        default=False,
+    )
+    can_supply = models.BooleanField(
+        default=False,
+    )
+    is_active = models.BooleanField(
         default=False,
     )
     created = models.DateTimeField(auto_now_add=True)
@@ -142,30 +136,3 @@ class DeliveryArea(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.area, self.amount)
-
-
-class MembershipLevel(models.Model):
-    name = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-    )
-    level = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-    )
-
-    def __str__(self):
-        return "%s - %s" % (self.name, self.level)
-
-
-class EmailTemplate(models.Model):
-    template_name = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-    )
-    template = models.TextField(
-        blank=True,
-        null=True,
-    )

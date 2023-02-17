@@ -15,6 +15,7 @@ from orders.serializers import (
     OrdersSerializer,
 )
 from orders.services import (
+    check_for_exclusive_product_variant,
     create_order_initial_history,
     get_or_create_customer,
     notify_customer_on_order_update_by_email,
@@ -23,10 +24,11 @@ from orders.services import (
     process_attachments,
     transform_order_form_data_to_json,
 )
+from users.models import User
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
 
 
-class OrdersListViewSet(ModelViewSet):
+class OrdersListAdminViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderListSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
@@ -37,7 +39,19 @@ class OrdersListViewSet(ModelViewSet):
         return Order.objects.filter(branch__branch_id=branch_id).order_by("-id")
 
 
-class OrderInfoViewSet(ModelViewSet):
+class OrdersListMemberViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderListSerializer
+    permission_classes = [IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        user = User.objects.get(id=self.request.user.pk, is_active=True)
+        if user is not None:
+            return Order.objects.filter(account__user=user).order_by("-id")
+
+
+class OrderInfoAdminViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrdersSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
@@ -50,6 +64,24 @@ class OrderInfoViewSet(ModelViewSet):
         if order_id:
             return (
                 Order.objects.filter(order_id=order_id, branch__branch_id=branch_id)
+                .prefetch_related(Prefetch("histories", queryset=OrderHistory.objects.order_by("-id")))
+                .all()
+            )
+
+
+class OrderInfoMemberViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrdersSerializer
+    permission_classes = [IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        user = User.objects.get(id=self.request.user.pk, is_active=True)
+        order_id = self.request.query_params.get("order_id", None)
+
+        if order_id:
+            return (
+                Order.objects.filter(order_id=order_id, account__user=user)
                 .prefetch_related(Prefetch("histories", queryset=OrderHistory.objects.order_by("-id")))
                 .all()
             )
@@ -94,8 +126,13 @@ class CreateOrderHistoryView(views.APIView):
                 order_history = serializer.save()
                 if order_history.email_sent:
                     email_msg = notify_customer_on_order_update_by_email(order_history)
-                    return Response(data={"detail": "Order updated. " + email_msg}, status=status.HTTP_201_CREATED)
-                return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
+
+                if order_history.order_status == OrderStatus.COMPLETED:
+                    email_msg = check_for_exclusive_product_variant(order_history)
+
+                if not email_msg:
+                    return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
+                return Response(data={"detail": "Order updated. " + email_msg}, status=status.HTTP_201_CREATED)
             else:
                 print(serializer.errors)
                 return Response(
