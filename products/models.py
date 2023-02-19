@@ -1,8 +1,10 @@
 import uuid
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Max, F, Prefetch
 from django.db.models.functions import Coalesce
+from orders.enums import OrderStatus
+from orders.models import OrderDetail
 from products.enums import Status, SupplyStatus
 
 
@@ -22,7 +24,7 @@ def product_variant_media_directory(instance, filename):
     return "product-variants/{0}/medias/{1}".format(instance.variant.sku, filename)
 
 
-# Products
+# Product Type
 class ProductType(models.Model):
     product_type_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     product_type = models.CharField(max_length=255, null=True, blank=True)
@@ -77,6 +79,7 @@ class ProductTypeMeta(models.Model):
         return "%s" % (self.product_type)
 
 
+# Product
 class Product(models.Model):
     product_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     product_type = models.ForeignKey(
@@ -147,6 +150,9 @@ class ProductMeta(models.Model):
         return "%s" % (self.product)
 
 
+# Product Variant
+
+
 class ProductVariant(models.Model):
     product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -194,6 +200,49 @@ class ProductVariant(models.Model):
 
     def get_total_quantity(self):
         return self.supplies.aggregate(current_stock=Coalesce(Sum("quantity"), 0)).get("current_stock")
+
+    def get_total_quantity_by_branch(self, branch_id=None):
+        orders = (
+            self.orders.filter(order__branch__branch_id=branch_id)
+            .filter(
+                order__histories__order_status=OrderStatus.COMPLETED,
+            )
+            .aggregate(current_stock=Coalesce(Sum("quantity"), 0))
+            .get("current_stock")
+        )
+
+        supplies = (
+            self.supplies.annotate(latest_supply_status=Max("supply__histories__created"))
+            .filter(supply__branch_to__branch_id=branch_id)
+            .filter(
+                supply__histories__created=F("latest_supply_status"),
+                supply__histories__supply_status=SupplyStatus.DELIVERED,
+            )
+            .aggregate(current_stock=Coalesce(Sum("quantity"), 0))
+            .get("current_stock")
+        )
+
+        return supplies - orders
+
+    # def get_orders_by_branch(self, branch_id=None):
+    #     orders = self.orders.filter(order__branch__branch_id=branch_id).filter(
+    #         order__histories__order_status=OrderStatus.COMPLETED
+    #     )
+
+    #     return orders
+
+    # def get_supplies_by_branch(self, branch_id=None):
+    #     supplies = (
+    #         self.supplies.annotate(latest_supply_status=Max("supply__histories__created"))
+    #         .filter(supply__branch_to__branch_id=branch_id)
+    #         .filter(
+    #             supply__histories__created=F("latest_supply_status"),
+    #             supply__histories__supply_status=SupplyStatus.DELIVERED,
+    #         )
+    #         .annotate(supply_number="supply__id")
+    #     )
+
+    #     return supplies
 
     class Meta:
         ordering = ["-variant_id"]
@@ -274,6 +323,7 @@ class ProductVariantMeta(models.Model):
     )
 
 
+# Supply
 class Supply(models.Model):
     supply_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     branch_from = models.ForeignKey(
@@ -282,7 +332,7 @@ class Supply(models.Model):
     branch_to = models.ForeignKey(
         "settings.Branch", on_delete=models.CASCADE, related_name="supplies_to", null=True, blank=True
     )
-    tracking_number = models.CharField(
+    reference_number = models.CharField(
         max_length=255,
         null=True,
         blank=True,
@@ -292,7 +342,12 @@ class Supply(models.Model):
         null=True,
         blank=True,
     )
-    reference_number = models.CharField(
+    carrier_contact_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    tracking_number = models.CharField(
         max_length=255,
         null=True,
         blank=True,
@@ -324,24 +379,40 @@ class Supply(models.Model):
             match self.histories.latest("created").supply_status:
                 case SupplyStatus.PENDING:
                     return 1
-                case SupplyStatus.ORDER_RECEIVED | SupplyStatus.BACK_ORDERED:
+                case SupplyStatus.REQUEST_RECEIVED | SupplyStatus.BACK_ORDERED:
                     return 2
                 case SupplyStatus.PREPARING:
                     return 3
                 case SupplyStatus.IN_TRANSIT:
-                    return 3
-                case SupplyStatus.CANCELLED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
                     return 4
+                case SupplyStatus.DELIVERED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
+                    return 5
                 case _:
                     None
         except:
             return None
 
+    def get_can_update_supply_status(self, branch_id=None):
+        if str(self.branch_from.branch_id) == branch_id and str(self.branch_to.branch_id) == branch_id:
+            return True
+        elif str(self.branch_from.branch_id) == branch_id and str(self.branch_to.branch_id) != branch_id:
+            last_supply_status = self.get_last_supply_status()
+            if last_supply_status == SupplyStatus.IN_TRANSIT:
+                return False
+            return True
+        elif str(self.branch_from.branch_id) != branch_id and str(self.branch_to.branch_id) == branch_id:
+            last_supply_status = self.get_last_supply_status()
+            if last_supply_status != SupplyStatus.PENDING and last_supply_status != SupplyStatus.IN_TRANSIT:
+                return False
+            return True
+        else:
+            return False
+
     def __str__(self):
         return "%s - %s" % (self.branch_from, self.branch_to)
 
 
-class SupplyDetails(models.Model):
+class SupplyDetail(models.Model):
     supply = models.ForeignKey(
         "products.Supply", on_delete=models.CASCADE, related_name="details", null=True, blank=True
     )
@@ -376,26 +447,29 @@ class SupplyHistory(models.Model):
         null=True,
         blank=True,
     )
+    email_sent = models.BooleanField(
+        default=False,
+    )
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User", on_delete=models.SET_NULL, related_name="created_supply_history", null=True, blank=True
     )
 
     def __str__(self):
-        return "%s - %s" % (self.order, self.order_status)
+        return "%s - %s" % (self.supply, self.supply_status)
 
     def get_supply_status_stage(self):
         match self.supply_status:
             case SupplyStatus.PENDING:
                 return 1
-            case SupplyStatus.ORDER_RECEIVED | SupplyStatus.BACK_ORDERED:
+            case SupplyStatus.REQUEST_RECEIVED | SupplyStatus.BACK_ORDERED:
                 return 2
             case SupplyStatus.PREPARING:
                 return 3
             case SupplyStatus.IN_TRANSIT:
-                return 3
-            case SupplyStatus.CANCELLED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
                 return 4
+            case SupplyStatus.DELIVERED | SupplyStatus.DENIED | SupplyStatus.CANCELLED:
+                return 5
 
     def get_supply_default_note(self):
         match self.supply_status:
@@ -403,7 +477,7 @@ class SupplyHistory(models.Model):
                 return "Supply Request has been created"
             case SupplyStatus.CANCELLED:
                 return "Supply Request has been cancelled"
-            case SupplyStatus.ORDER_RECEIVED:
+            case SupplyStatus.REQUEST_RECEIVED:
                 return "Supply Request has been received"
             case SupplyStatus.BACK_ORDERED:
                 return "Supply Request moved to back ordered"

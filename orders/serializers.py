@@ -10,7 +10,7 @@ from orders.models import (
     OrderHistory,
 )
 
-# Orders
+# Customers
 class AddressesSerializer(ModelSerializer):
     class Meta:
         model = Address
@@ -35,6 +35,25 @@ class CustomersSerializer(ModelSerializer):
             "email_address",
             "contact_number",
             "address",
+        ]
+
+
+# Orders
+class ProductVariantOrderDetailsSerializer(ModelSerializer):
+    order_number = serializers.CharField(source="order.get_order_number", required=False)
+    order_id = serializers.CharField(source="order.order_id", required=False)
+    current_order_status = serializers.CharField(source="order.get_last_order_status", required=False)
+
+    class Meta:
+        model = OrderDetail
+        fields = [
+            "order_number",
+            "order_id",
+            "current_order_status",
+            "amount",
+            "discount",
+            "quantity",
+            "total_amount",
         ]
 
 
@@ -98,38 +117,7 @@ class OrderFeesSerializer(ModelSerializer):
         ]
 
 
-class OrdersSerializer(ModelSerializer):
-    customer = CustomersSerializer()
-    details = OrderDetailsSerializer(many=True, required=False)
-    fees = OrderFeesSerializer(many=True, required=False)
-    histories = OrderHistorySerializer(many=True, required=False)
-    current_order_status = serializers.CharField(source="get_last_order_status", required=False)
-    current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
-    attachments = OrderAttachmentsSerializer(many=True, required=False)
-    order_number = serializers.CharField(source="get_order_number", required=False)
-
-    class Meta:
-        model = Order
-        fields = [
-            "order_number",
-            "total_amount",
-            "total_discount",
-            "total_fees",
-            "order_amount",
-            "current_order_status",
-            "current_order_stage",
-            "customer",
-            "payment_method",
-            "order_type",
-            "created",
-            "details",
-            "fees",
-            "histories",
-            "attachments",
-        ]
-
-
-class OrderListSerializer(ModelSerializer):
+class OrdersListSerializer(ModelSerializer):
     order_number = serializers.CharField(source="get_order_number", required=False)
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
 
@@ -144,14 +132,41 @@ class OrderListSerializer(ModelSerializer):
         ]
 
 
+class OrderInfoSerializer(ModelSerializer):
+    histories = OrderHistorySerializer(many=True, required=False)
+    attachments = OrderAttachmentsSerializer(many=True, required=False)
+    details = OrderDetailsSerializer(many=True, required=False)
+    fees = OrderFeesSerializer(many=True, required=False)
+    customer = CustomersSerializer()
+    current_order_status = serializers.CharField(source="get_last_order_status", required=False)
+    current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
+    order_number = serializers.CharField(source="get_order_number", required=False)
+
+    class Meta:
+        model = Order
+        fields = [
+            "histories",
+            "attachments",
+            "details",
+            "fees",
+            "customer",
+            "current_order_status",
+            "current_order_stage",
+            "order_number",
+            "total_amount",
+            "total_discount",
+            "total_fees",
+            "order_amount",
+            "payment_method",
+            "order_type",
+            "created",
+        ]
+
+
 class CreateOrderSerializer(ModelSerializer):
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
     histories = OrderHistorySerializer(many=True, required=False)
-
-    class Meta:
-        model = Order
-        fields = "__all__"
 
     def create(self, validated_data):
         details = validated_data.pop("details")
@@ -169,3 +184,7 @@ class CreateOrderSerializer(ModelSerializer):
             OrderHistory.objects.create(**history, order=order)
 
         return order
+
+    class Meta:
+        model = Order
+        fields = "__all__"

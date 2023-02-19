@@ -13,7 +13,7 @@ class SupplyStatus(models.TextChoices):
         "Cancelled"
     )  # -- Order has been cancelled by branch requestor. Can only cancel Pending Status.
     PENDING = "PENDING", _("Pending")  # -- Order has been made but not yet approved
-    ORDER_RECEIVED = "ORDER_RECEIVED", _("Received")  # -- Order has been received by branch supplier
+    REQUEST_RECEIVED = "REQUEST_RECEIVED", _("Request Received")  # -- Order has been received by branch supplier
     BACK_ORDERED = "BACK_ORDERED", _(
         "Back Ordered"
     )  # --  Order has been received but currently no stocks on branch supplier

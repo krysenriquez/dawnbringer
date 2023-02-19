@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from settings.models import Branch, BranchAssignment
 from settings.serializers import (
+    BranchesListSerializer,
     BranchAssignmentsSerializer,
-    BranchesSerializer,
+    ShopBranchSerializer,
+    ShopDeliveryAreaSerializer,
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
@@ -22,20 +24,34 @@ class BranchAssignmentsViewSet(ModelViewSet):
         ).filter(user=self.request.user)
 
 
-class BranchViewSet(ModelViewSet):
+class BranchListViewSet(ModelViewSet):
     queryset = Branch.objects.all()
-    serializer_class = BranchesSerializer
+    serializer_class = BranchesListSerializer
     permission_classes = []
     http_method_names = ["get"]
 
     def get_queryset(self):
         return Branch.objects.all()
+
+
+class ShopGetDeliveryAreaAmountView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        city = request.data.get("city")
+        province = request.data.get("province")
+        country = request.data.get("country")
+
+        return Response(
+            data={"amount": int(100)},
+            status=status.HTTP_200_OK,
+        )
 
 
 # Front End
 class ShopBranchListViewSet(ModelViewSet):
     queryset = Branch.objects.all()
-    serializer_class = BranchesSerializer
+    serializer_class = ShopBranchSerializer
     permission_classes = []
     http_method_names = ["get"]
 
@@ -43,9 +59,9 @@ class ShopBranchListViewSet(ModelViewSet):
         return Branch.objects.all()
 
 
-class ShopBranchViewSet(ModelViewSet):
+class ShopBranchInfoViewSet(ModelViewSet):
     queryset = Branch.objects.all()
-    serializer_class = BranchesSerializer
+    serializer_class = ShopBranchSerializer
     permission_classes = []
     http_method_names = ["get"]
 

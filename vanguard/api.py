@@ -1,3 +1,4 @@
+from django.forms.models import model_to_dict
 from rest_framework import status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,6 +16,10 @@ class AuthAdminLoginView(TokenObtainPairView):
 
 
 class AuthLoginView(TokenObtainPairView):
+    serializer_class = AuthLoginSerializer
+
+
+class AuthShopLoginView(TokenObtainPairView):
     serializer_class = AuthLoginSerializer
 
 
@@ -38,6 +43,33 @@ class WhoAmIView(views.APIView):
 
         return Response(
             data=data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class WhoAmIShopView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        if request.user.user_type == UserType.MEMBER:
+            data = {
+                "user_id": request.user.user_id,
+                "email_address": request.user.email_address,
+                "username": request.user.username,
+                "user_type": request.user.user_type,
+            }
+
+            account = Account.objects.get(user=request.user)
+            if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
+                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
+
+            data["address_info"] = model_to_dict(account.address_info)
+
+            return Response(
+                data=data,
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            data="Invalid Member Account",
             status=status.HTTP_200_OK,
         )
 

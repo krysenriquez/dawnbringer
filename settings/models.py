@@ -80,6 +80,11 @@ class Branch(models.Model):
         null=True,
         blank=True,
     )
+    email_address = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
     is_main = models.BooleanField(
         default=False,
     )
@@ -103,6 +108,9 @@ class Branch(models.Model):
 
     class Meta:
         ordering = ["-branch_name"]
+
+    def get_branch_full_address(self):
+        return "%s %s %s %s %s" % (self.address1, self.address2, self.city, self.province, self.zip)
 
     def __str__(self):
         return "%s" % (self.branch_name)

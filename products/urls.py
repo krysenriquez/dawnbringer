@@ -14,7 +14,10 @@ from products.api import (
     CreateProductTypeView,
     CreateProductView,
     CreateProductVariantView,
-    GetSupplyStatus,
+    CreateSupplyView,
+    UpdateSupplyView,
+    CreateSupplyHistoryView,
+    GetSupplyStatusView,
 )
 from django.urls import path
 
@@ -36,7 +39,10 @@ urlpatterns = [
     path("createproducttype/", CreateProductTypeView.as_view()),
     path("createproduct/", CreateProductView.as_view()),
     path("createproductvariant/", CreateProductVariantView.as_view()),
-    path("getsupplystatus/", GetSupplyStatus.as_view()),
+    path("createsupply/", CreateSupplyView.as_view()),
+    path("updatesupply/", UpdateSupplyView.as_view()),
+    path("updatesupplystatus/", CreateSupplyHistoryView.as_view()),
+    path("getsupplystatus/", GetSupplyStatusView.as_view()),
 ]
 
 urlpatterns += router.urls

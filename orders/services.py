@@ -2,11 +2,11 @@ import json
 from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
 from accounts.models import Registration
-from orders.models import Customer, Address, Order, OrderAttachments
-from orders.enums import OrderStatus
-from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from core.enums import Settings
 from core.services import get_setting
+from emails.services import construct_and_send_email_payload, get_email_template, render_template
+from orders.models import Customer, Address, Order, OrderAttachments
+from orders.enums import OrderStatus
 
 
 def transform_order_form_data_to_json(request):
@@ -32,7 +32,6 @@ def transform_order_form_data_to_json(request):
 
 
 def get_or_create_customer(request):
-    print(request["customer"])
     obj, created = Customer.objects.get_or_create(
         name=request["customer"]["name"],
         email_address=request["customer"]["email_address"],
@@ -115,7 +114,8 @@ def notify_customer_on_order_update_by_email(order_history):
 
     if order:
         shop_order_link = str(get_setting(Settings.SHOP_ORDER_LINK))
-        email_template = get_email_template(order_history.order_status)
+        template = "%s%s" % ("ORDER_", order_history.order_status)
+        email_template = get_email_template(template)
         email_subject = render_template(email_template.subject, {})
         if order.account:
             email_body = render_template(

@@ -11,8 +11,8 @@ from orders.models import (
 from orders.serializers import (
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
-    OrderListSerializer,
-    OrdersSerializer,
+    OrdersListSerializer,
+    OrderInfoSerializer,
 )
 from orders.services import (
     check_for_exclusive_product_variant,
@@ -30,7 +30,7 @@ from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMe
 
 class OrdersListAdminViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrderListSerializer
+    serializer_class = OrdersListSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
@@ -41,7 +41,7 @@ class OrdersListAdminViewSet(ModelViewSet):
 
 class OrdersListMemberViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrderListSerializer
+    serializer_class = OrdersListSerializer
     permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 
@@ -53,7 +53,7 @@ class OrdersListMemberViewSet(ModelViewSet):
 
 class OrderInfoAdminViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrdersSerializer
+    serializer_class = OrderInfoSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
@@ -71,7 +71,7 @@ class OrderInfoAdminViewSet(ModelViewSet):
 
 class OrderInfoMemberViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrdersSerializer
+    serializer_class = OrderInfoSerializer
     permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 
@@ -124,6 +124,7 @@ class CreateOrderHistoryView(views.APIView):
             serializer = CreateOrderHistorySerializer(data=process_order_history)
             if serializer.is_valid():
                 order_history = serializer.save()
+                email_msg = None
                 if order_history.email_sent:
                     email_msg = notify_customer_on_order_update_by_email(order_history)
 
@@ -141,7 +142,7 @@ class CreateOrderHistoryView(views.APIView):
                 )
 
 
-class GetOrderStatus(views.APIView):
+class GetOrderStatusView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
@@ -177,7 +178,7 @@ class GetOrderStatus(views.APIView):
 # Front End
 class ShopOrdersListViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrderListSerializer
+    serializer_class = OrdersListSerializer
     permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 
@@ -189,7 +190,7 @@ class ShopOrdersListViewSet(ModelViewSet):
 
 class ShopOrderInfoViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrdersSerializer
+    serializer_class = OrderInfoSerializer
     permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 
@@ -209,7 +210,7 @@ class ShopOrderInfoViewSet(ModelViewSet):
 
 class ShopOrderInfoGuestViewSet(ModelViewSet):
     queryset = Order.objects.all()
-    serializer_class = OrdersSerializer
+    serializer_class = OrderInfoSerializer
     permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 

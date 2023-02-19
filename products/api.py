@@ -1,9 +1,11 @@
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, Sum, Max, F
 from rest_framework import status, views, permissions
 from rest_framework.parsers import MultiPartParser
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from orders.enums import OrderStatus
+from orders.models import OrderDetail
 from products.enums import Status, SupplyStatus
 from products.models import (
     ProductType,
@@ -12,11 +14,14 @@ from products.models import (
     ProductMedia,
     ProductVariantMeta,
     Supply,
+    SupplyDetail,
+    SupplyHistory,
 )
 from products.serializers import (
     CreateProductSerializer,
     CreateProductTypeSerializer,
     CreateProductVariantsSerializer,
+    CreateSupplyHistorySerializer,
     ProductTypeOptionsSerializer,
     ProductTypesListSerializer,
     ProductTypeInfoSerializer,
@@ -27,22 +32,27 @@ from products.serializers import (
     ProductVariantsListSerializer,
     ProductVariantInfoSerializer,
     SuppliesListSerializer,
-    SuppliesInfoSerializer,
+    SupplyCreateSerializer,
+    SupplyInfoSerializer,
     ShopProductsVariantsSerializer,
     ShopProductsSerializer,
     ShopProductTypesSerializer,
 )
 from products.services import (
+    create_supply_initial_history,
     create_supply_status_filter,
     create_variant_initial_supply,
+    notify_branch_to_on_supply_update_by_email,
     process_media,
+    process_supply_history_request,
+    process_supply_request,
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
 )
 from settings.models import Branch
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 
-
+# Product Type
 class ProductTypeOptionsViewSet(ModelViewSet):
     queryset = ProductType.objects.all()
     serializer_class = ProductTypeOptionsSerializer
@@ -74,6 +84,7 @@ class ProductTypeInfoViewSet(ModelViewSet):
         return ProductType.objects.filter(product_type_id=product_type_id)
 
 
+# Product
 class ProductOptionsViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductOptionsSerializer
@@ -106,6 +117,7 @@ class ProductInfoViewSet(ModelViewSet):
             return Product.objects.exclude(is_deleted=True).filter(product_id=product_id)
 
 
+# Product Variant
 class ProductVariantOptionsViewSet(ModelViewSet):
     queryset = ProductVariant.objects.all()
     serializer_class = ProductVariantOptionsSerializer
@@ -123,17 +135,8 @@ class ProductVariantsListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        variant_id = self.request.query_params.get("variant_id", None)
-        sku = self.request.query_params.get("sku", None)
-
-        queryset = ProductVariant.objects.all().order_by("product")
-        if variant_id:
-            queryset = queryset.filter(variant_id=variant_id)
-
-        if sku:
-            queryset = queryset.filter(sku=sku)
-
-        return queryset
+        branch_id = self.request.query_params.get("branch_id", None)
+        return ProductVariant.objects.all().order_by("product")
 
 
 class ProductVariantInfoViewSet(ModelViewSet):
@@ -143,11 +146,33 @@ class ProductVariantInfoViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
         sku = self.request.query_params.get("sku", None)
         if sku:
-            return ProductVariant.objects.exclude(is_deleted=True).filter(sku=sku)
+            return (
+                ProductVariant.objects.exclude(is_deleted=True)
+                .filter(sku=sku)
+                .prefetch_related(
+                    Prefetch(
+                        "supplies",
+                        SupplyDetail.objects.annotate(latest_supply_status=Max("supply__histories__created"))
+                        .filter(supply__branch_to__branch_id=branch_id)
+                        .filter(
+                            supply__histories__created=F("latest_supply_status"),
+                            supply__histories__supply_status=SupplyStatus.DELIVERED,
+                        ),
+                    ),
+                    Prefetch(
+                        "orders",
+                        OrderDetail.objects.filter(order__branch__branch_id=branch_id).filter(
+                            order__histories__order_status=OrderStatus.COMPLETED
+                        ),
+                    ),
+                )
+            )
 
 
+# Supplies
 class SuppliesListViewSet(ModelViewSet):
     queryset = Supply.objects.all()
     serializer_class = SuppliesListSerializer
@@ -166,7 +191,7 @@ class SuppliesListViewSet(ModelViewSet):
 
 class SuppliesInfoViewSet(ModelViewSet):
     queryset = Supply.objects.all()
-    serializer_class = SuppliesInfoSerializer
+    serializer_class = SupplyInfoSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
@@ -175,12 +200,20 @@ class SuppliesInfoViewSet(ModelViewSet):
         branch_id = self.request.query_params.get("branch_id", None)
         branch = Branch.objects.get(branch_id=branch_id)
         if branch.can_supply:
-            return Supply.objects.filter(
-                Q(supply_id=supply_id) & (Q(branch_to__branch_id=branch_id) | Q(branch_from__branch_id=branch_id))
+            return (
+                Supply.objects.filter(
+                    Q(supply_id=supply_id) & (Q(branch_to__branch_id=branch_id) | Q(branch_from__branch_id=branch_id))
+                )
+                .prefetch_related(Prefetch("histories", queryset=SupplyHistory.objects.order_by("-id")))
+                .all()
             )
 
         if branch_id:
-            return Supply.objects.filter(supply_id=supply_id, branch_to__branch_id=branch_id)
+            return (
+                Supply.objects.filter(supply_id=supply_id, branch_to__branch_id=branch_id)
+                .prefetch_related(Prefetch("histories", queryset=SupplyHistory.objects.order_by("-id")))
+                .all()
+            )
 
 
 # POST Views
@@ -247,7 +280,66 @@ class CreateProductVariantView(views.APIView):
             )
 
 
-class GetSupplyStatus(views.APIView):
+class CreateSupplyView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        processed_request = process_supply_request(request.data)
+        processed_request["created_by"] = request.user.pk
+        processed_request["histories"] = create_supply_initial_history(request.data)
+        serializer = SupplyCreateSerializer(data=processed_request)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"detail": "Supply Request created."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"detail": "Unable to create Supply Request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateSupplyView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        supply = Supply.objects.get(supply_id=request.data["supply_id"])
+        serializer = SupplyCreateSerializer(supply, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"detail": "Supply Request updated."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"detail": "Unable to update Supply Request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class CreateSupplyHistoryView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        processed_supply_history = process_supply_history_request(request)
+        if processed_supply_history:
+            serializer = CreateSupplyHistorySerializer(data=processed_supply_history)
+            if serializer.is_valid():
+                supply_history = serializer.save()
+                email_msg = None
+                if supply_history.email_sent:
+                    email_msg = notify_branch_to_on_supply_update_by_email(supply_history)
+                if not email_msg:
+                    return Response(data={"detail": "Supply updated."}, status=status.HTTP_201_CREATED)
+                return Response(data={"detail": "Supply updated. " + email_msg}, status=status.HTTP_201_CREATED)
+            else:
+                print(serializer.errors)
+                return Response(
+                    data={"detail": "Unable to update Supply."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+
+class GetSupplyStatusView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
@@ -259,7 +351,7 @@ class GetSupplyStatus(views.APIView):
 
         status_arr = []
         for ss in SupplyStatus:
-            if ss not in StatusFilter and ss != supply_status:
+            if ss in StatusFilter and ss != supply_status:
                 status_arr.append(ss)
 
         if status_arr:

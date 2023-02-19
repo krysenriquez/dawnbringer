@@ -1,5 +1,8 @@
 import json
 from django.shortcuts import get_object_or_404
+from core.enums import Settings
+from core.services import get_setting
+from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from products.enums import SupplyStatus
 from products.models import ProductMedia, Supply
 from settings.models import Branch
@@ -77,36 +80,125 @@ def process_media(variant, request):
 
 def create_supply_status_filter(branch_id, supply_id, supply_status):
     StatusFilter = []
-    branch = Branch.objects.get(branch_id=branch_id)
     supply = Supply.objects.get(supply_id=supply_id)
 
-    # Supplier
-    if supply.branch_from == branch and supply.branch_to != branch:
+    # Both Supplier and Requestor
+    if str(supply.branch_from.branch_id) == branch_id and str(supply.branch_to.branch_id) == branch_id:
         match supply_status:
             case SupplyStatus.PENDING:
-                StatusFilter.append(SupplyStatus.ORDER_RECEIVED)
+                StatusFilter.append(SupplyStatus.CANCELLED)
+                StatusFilter.append(SupplyStatus.REQUEST_RECEIVED)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.REQUEST_RECEIVED:
                 StatusFilter.append(SupplyStatus.BACK_ORDERED)
                 StatusFilter.append(SupplyStatus.PREPARING)
                 StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.BACK_ORDERED:
+                StatusFilter.append(SupplyStatus.PREPARING)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.PREPARING:
+                StatusFilter.append(SupplyStatus.BACK_ORDERED)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+            case SupplyStatus.IN_TRANSIT:
                 StatusFilter.append(SupplyStatus.DELIVERED)
-            case SupplyStatus.ORDER_RECEIVED:
-                StatusFilter.append(SupplyStatus.PENDING)
-                StatusFilter.append(SupplyStatus.CANCELLED)
             case _:
-                StatusFilter.append(SupplyStatus.CANCELLED)
+                pass
     # Requestor
-    elif supply.branch_from != branch and supply.branch_to == branch:
+    elif str(supply.branch_from.branch_id) == branch_id and str(supply.branch_to.branch_id) != branch_id:
         match supply_status:
             case SupplyStatus.PENDING:
-                StatusFilter.append(SupplyStatus.ORDER_RECEIVED)
+                StatusFilter.append(SupplyStatus.REQUEST_RECEIVED)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.REQUEST_RECEIVED:
                 StatusFilter.append(SupplyStatus.BACK_ORDERED)
                 StatusFilter.append(SupplyStatus.PREPARING)
                 StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.BACK_ORDERED:
+                StatusFilter.append(SupplyStatus.PREPARING)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+                StatusFilter.append(SupplyStatus.DENIED)
+            case SupplyStatus.PREPARING:
+                StatusFilter.append(SupplyStatus.BACK_ORDERED)
+                StatusFilter.append(SupplyStatus.IN_TRANSIT)
+            case _:
+                pass
+    # Requestor
+    elif str(supply.branch_from.branch_id) != branch_id and str(supply.branch_to.branch_id) == branch_id:
+        match supply_status:
+            case SupplyStatus.PENDING:
+                StatusFilter.append(SupplyStatus.CANCELLED)
+            case SupplyStatus.IN_TRANSIT:
                 StatusFilter.append(SupplyStatus.DELIVERED)
             case _:
-                StatusFilter.append(SupplyStatus.CANCELLED)
+                pass
     # Both
     else:
         pass
-
+    print(StatusFilter)
     return StatusFilter
+
+
+def process_supply_request(request):
+    data = {
+        "branch_from": request["branch_from"],
+        "branch_to": request["branch_to"],
+        "tracking_number": request["tracking_number"],
+        "carrier": request["carrier"],
+        "reference_number": request["reference_number"],
+        "comment": request["comment"],
+    }
+
+    if request["details"]:
+        details = []
+        for detail in request["details"]:
+            details.append({"variant": detail["variant"], "quantity": detail["quantity"]})
+        data["details"] = details
+
+    return data
+
+
+def create_supply_initial_history(request):
+    if request["set_status_to_delivered"]:
+        return [{"supply_status": SupplyStatus.DELIVERED, "comment": "Same Branch Supply Request. Set to Delivered."}]
+
+    return [{"supply_status": SupplyStatus.PENDING, "comment": "Supply Request Submitted"}]
+
+
+def process_supply_history_request(request):
+    supply = get_object_or_404(Supply, supply_id=request.data["supply_id"])
+
+    if supply:
+        data = {
+            "supply": supply.pk,
+            "supply_status": request.data["supply_status"],
+            "comment": request.data["comment"],
+            "email_sent": request.data["email_sent"],
+            "created_by": request.user.pk,
+        }
+
+        return data
+
+
+def notify_branch_to_on_supply_update_by_email(supply_history):
+    supply = get_object_or_404(Supply, id=supply_history.supply.pk)
+    branch_from = get_object_or_404(Branch, id=supply.branch_from.pk)
+    branch_to = get_object_or_404(Branch, id=supply.branch_to.pk)
+
+    if supply:
+        template = "%s%s" % ("SUPPLY_", supply_history.supply_status)
+        email_template = get_email_template(template)
+        email_subject = render_template(email_template.subject, {})
+        email_body = render_template(
+            email_template.body,
+            {
+                "branch_from_name": branch_from.branch_name,
+                "branch_to_name": branch_to.branch_name,
+                "supply_number": supply.get_supply_number(),
+            },
+        )
+        return construct_and_send_email_payload(email_subject, email_body, branch_to.email_address)
+
+    return None

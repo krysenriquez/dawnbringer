@@ -11,7 +11,8 @@ from products.api import (
     ShopProductViewSet,
     ShopProductsVariantViewSet,
 )
-from settings.api import ShopBranchListViewSet, ShopBranchViewSet
+from settings.api import ShopBranchListViewSet, ShopBranchInfoViewSet, ShopGetDeliveryAreaAmountView
+from vanguard.api import AuthShopLoginView, WhoAmIShopView
 
 router = DefaultRouter()
 router.register(r"getpagecontents", PageContentsViewSet)
@@ -27,10 +28,16 @@ router.register(r"getorders", ShopOrdersListViewSet)
 router.register(r"getproducttype", ShopProductTypeViewSet)
 router.register(r"getproduct", ShopProductViewSet)
 router.register(r"getproductvariant", ShopProductsVariantViewSet)
-router.register(r"getbranch", ShopBranchViewSet)
+router.register(r"getbranch", ShopBranchInfoViewSet)
 router.register(r"getorder", ShopOrderInfoViewSet)
 router.register(r"getorderguest", ShopOrderInfoGuestViewSet)
 
-urlpatterns = [path("createorder/", CreateOrderView.as_view()), path("verifycode/", VerifyCodeView.as_view())]
+urlpatterns = [
+    path("createorder/", CreateOrderView.as_view()),
+    path("verifycode/", VerifyCodeView.as_view()),
+    path("getdeliveryamount/", ShopGetDeliveryAreaAmountView.as_view()),
+    path("login/", AuthShopLoginView.as_view()),
+    path("whoami/", WhoAmIShopView.as_view()),
+]
 
 urlpatterns += router.urls
