@@ -5,7 +5,7 @@ from orders.enums import AddressType, OrderType, PaymentMethods, OrderStatus
 
 # Orders
 def order_attachments_directory(instance, filename):
-    return "orders/{0}/attachments/{1}".format(instance.id, filename)
+    return "orders/{0}/attachments/{1}".format(instance.order_id, filename)
 
 
 class Customer(models.Model):
@@ -24,6 +24,12 @@ class Customer(models.Model):
         null=True,
         blank=True,
     )
+
+    def get_orders_count(self):
+        return self.orders.count()
+
+    def get_customer_number(self):
+        return str(self.id).zfill(6)
 
     def __str__(self):
         return "%s" % (self.name)

@@ -25,16 +25,20 @@ class AddressesSerializer(ModelSerializer):
         ]
 
 
-class CustomersSerializer(ModelSerializer):
+class CustomersListSerializer(ModelSerializer):
     address = AddressesSerializer(many=True, required=False)
+    order_count = serializers.CharField(source="get_orders_count", required=False)
+    customer_number = serializers.CharField(source="get_customer_number", required=False)
 
     class Meta:
         model = Customer
         fields = [
+            "address",
+            "order_count",
+            "customer_number",
             "name",
             "email_address",
             "contact_number",
-            "address",
         ]
 
 
@@ -137,7 +141,7 @@ class OrderInfoSerializer(ModelSerializer):
     attachments = OrderAttachmentsSerializer(many=True, required=False)
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
-    customer = CustomersSerializer()
+    customer = CustomersListSerializer()
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
     current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     order_number = serializers.CharField(source="get_order_number", required=False)

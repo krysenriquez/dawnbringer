@@ -7,16 +7,19 @@ from orders.enums import OrderStatus, OrderType
 from orders.models import (
     Order,
     OrderHistory,
+    Customer,
 )
 from orders.serializers import (
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
     OrdersListSerializer,
     OrderInfoSerializer,
+    CustomersListSerializer,
 )
 from orders.services import (
     check_for_exclusive_product_variant,
     create_order_initial_history,
+    get_account,
     get_or_create_customer,
     notify_customer_on_order_update_by_email,
     process_order_request,
@@ -27,7 +30,18 @@ from orders.services import (
 from users.models import User
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
 
+#Customer
+class CustomersListViewSet(ModelViewSet):
+    queryset = Customer.objects.all()
+    serializer_class = CustomersListSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
 
+    def get_queryset(self):
+        return Customer.objects.order_by("-id")
+
+
+# Order
 class OrdersListAdminViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrdersListSerializer
@@ -87,14 +101,25 @@ class OrderInfoMemberViewSet(ModelViewSet):
             )
 
 
+# Order
 class CreateOrderView(views.APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
+        account = None
+        customer = None
         transformed_request = transform_order_form_data_to_json(request.data)
-        customer = get_or_create_customer(transformed_request)
-        if customer:
-            transformed_request["customer"] = customer.pk
+        account = get_account(transformed_request)
+
+        if account is None:
+            customer = get_or_create_customer(transformed_request)
+            if customer is not None:
+                transformed_request["customer"] = customer.pk
+
+        if account is not None:
+            transformed_request["account"] = account.pk
+
+        if account is not None or customer is not None:
             transformed_request["histories"] = create_order_initial_history()
             processed_request = process_order_request(transformed_request)
             serializer = CreateOrderSerializer(data=processed_request)

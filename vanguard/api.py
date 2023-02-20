@@ -62,6 +62,7 @@ class WhoAmIShopView(views.APIView):
                 data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
 
             data["address_info"] = model_to_dict(account.address_info)
+            data["account_id"] = account.account_id
 
             return Response(
                 data=data,

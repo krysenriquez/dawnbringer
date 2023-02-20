@@ -9,6 +9,7 @@ class Settings(models.TextChoices):
     REGISTRATION_TAG = "REGISTRATION_TAG", _("Registration Tag")
     REGISTRATION_LINK = "REGISTRATION_LINK", _("Registration Link")
     SHOP_ORDER_LINK = "SHOP_ORDER_LINK", _("Shop Order Link")
+    SHOP_CODE_LINK = "SHOP_CODE_LINK", _("Shop Code Link")
     POINT_CONVERSION_RATE = "POINT_CONVERSION_RATE", _("Point Conversion Rate")
     M_WALLET_CASHOUT_DAY = "M_WALLET_CASHOUT_DAY", _("Member Wallet Cashout Day")
     M_WALLET_CASHOUT_OVERRIDE = "M_WALLET_CASHOUT_OVERRIDE", _("Member Wallet Cashout Day")

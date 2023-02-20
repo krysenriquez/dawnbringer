@@ -2,7 +2,7 @@ import json
 import decimal
 from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
-from accounts.models import Registration, Code
+from accounts.models import Account, Registration, Code
 from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
@@ -40,6 +40,11 @@ def transform_order_form_data_to_json(request):
 
     return data
 
+
+def get_account(request):
+    account = get_object_or_none(Account, account_id=request["account"])
+
+    return account
 
 def get_or_create_customer(request):
     obj, created = Customer.objects.get_or_create(

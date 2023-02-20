@@ -4,6 +4,7 @@ from orders.api import (
     OrdersListMemberViewSet,
     OrderInfoAdminViewSet,
     OrderInfoMemberViewSet,
+    CustomersListViewSet,
     GetOrderStatusView,
     CreateOrderHistoryView,
 )
@@ -13,6 +14,7 @@ router = DefaultRouter()
 # Admin
 router.register(r"getadminorders", OrdersListAdminViewSet)
 router.register(r"getadminorder", OrderInfoAdminViewSet)
+router.register(r"getcustomers", CustomersListViewSet)
 # Members
 router.register(r"getorders", OrdersListMemberViewSet)
 router.register(r"getorder", OrderInfoMemberViewSet)
