@@ -87,7 +87,7 @@ def activate_account_login(account, user):
 
 
 def verify_code_details(request):
-    code = get_object_or_404(Code, code=request.data["activation_code"])
+    code = get_object_or_404(Code, code=request.data["discount_code"])
 
     match code.status:
         case CodeStatus.ACTIVE:

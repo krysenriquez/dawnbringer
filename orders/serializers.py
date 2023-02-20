@@ -153,6 +153,7 @@ class OrderInfoSerializer(ModelSerializer):
             "current_order_status",
             "current_order_stage",
             "order_number",
+            "order_date",
             "total_amount",
             "total_discount",
             "total_fees",

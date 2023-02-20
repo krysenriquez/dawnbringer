@@ -1,12 +1,22 @@
 import json
+import decimal
 from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
-from accounts.models import Registration
+from accounts.models import Registration, Code
 from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from orders.models import Customer, Address, Order, OrderAttachments
 from orders.enums import OrderStatus
+from products.models import ProductVariant
+from settings.models import Branch
+
+
+def get_object_or_none(classmodel, **kwargs):
+    try:
+        return classmodel.objects.get(**kwargs)
+    except classmodel.DoesNotExist:
+        return None
 
 
 def transform_order_form_data_to_json(request):
@@ -49,30 +59,77 @@ def create_customer_address(customer, addresses):
         Address.objects.create(**address, customer=customer)
 
 
-def process_order_request(request, customer):
-    attachments = []
+def process_order_request(request):
+    total_amount = 0
+    total_discount = 0
+    total_fees = 0
+    order_amount = 0
+    has_valid_code = False
+
+    branch = get_object_or_404(Branch, branch_id=request["branch"])
 
     data = {
-        "customer": customer.pk,
-        "account": request.data["account"],
-        "total_amount": request.data["total_amount"],
-        "total_discount": request.data["total_discount"],
-        "total_fees": request.data["total_fees"],
-        "order_amount": request.data["order_amount"],
-        "order_type": request.data["order_type"],
-        "payment_method": request.data["payment_method"],
-        "order_notes": request.data["order_notes"],
-        "order_date": request.data["order_date"],
-        "details": request.data["details"],
-        "fees": request.data["fees"],
+        "account": request["account"],
+        "order_type": request["order_type"],
+        "payment_method": request["payment_method"],
+        "order_notes": request["order_notes"],
+        "order_date": request["order_date"],
+        "fees": request["fees"],
+        "customer": request["customer"],
+        "histories": request["histories"],
+        "branch": branch.pk,
     }
 
-    if request.data["attachments"]:
-        attachments = request.data["attachments"]
+    if request["code"]:
+        promo_code = get_object_or_none(Code, code=request["code"])
+        if promo_code:
+            data["promo_code"] = promo_code.pk
+            has_valid_code = True
 
-    data["histories"] = create_order_initial_history()
+    details, order_amount, total_discount = process_order_details(
+        request["details"], order_amount, has_valid_code, total_discount
+    )
+    data["details"] = details
+    data["order_amount"] = order_amount
+    data["total_discount"] = total_discount
 
-    return data, attachments
+    total_fees = process_fees_details(request["fees"], total_fees, has_valid_code, total_discount)
+    data["total_fees"] = total_fees
+
+    data["total_amount"] = (decimal.Decimal(order_amount) + decimal.Decimal(total_fees)) - decimal.Decimal(
+        total_discount
+    )
+
+    return data
+
+
+def process_order_details(details, order_amount, has_valid_code, total_discount):
+    for detail in details:
+        variant = get_object_or_none(ProductVariant, variant_id=detail["variant"])
+        if variant:
+            detail["product_variant"] = variant.pk
+            detail["amount"] = variant.price.price
+            detail["discount"] = 0
+            detail["total_amount"] = variant.price.price * detail["quantity"]
+            order_amount += detail["total_amount"]
+            if has_valid_code:
+                detail["discount"] = variant.price.discount
+                detail["total_amount"] = variant.price.discount * detail["quantity"]
+                total_discount += (variant.price.price * detail["quantity"]) - (
+                    variant.price.discount * detail["quantity"]
+                )
+
+    return details, order_amount, total_discount
+
+
+def process_fees_details(fees, total_fees, has_valid_code, total_discount):
+    for detail in fees:
+        total_fees += decimal.Decimal(detail["amount"])
+
+    if has_valid_code:
+        fees.append({"fee_type": "Discount", "amount": -abs(total_discount)})
+
+    return total_fees
 
 
 def create_order_initial_history():

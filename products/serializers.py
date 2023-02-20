@@ -282,9 +282,6 @@ class ProductVariantInfoSerializer(ModelSerializer):
         request = self.context["request"]
         branch_id = request.query_params["branch_id"]
         stocks = instance.get_total_quantity_by_branch(branch_id=branch_id)
-        # orders = instance.get_orders_by_branch(branch_id=branch_id)
-        # supplies = instance.get_supplies_by_branch(branch_id=branch_id)
-
         data = super(ProductVariantInfoSerializer, self).to_representation(instance)
         data.update({"stocks": stocks})
 
@@ -599,8 +596,16 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
     price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
-    stocks = serializers.IntegerField(source="get_total_quantity")
     meta = ProductVariantMetaSerializer()
+
+    def to_representation(self, instance):
+        request = self.context["request"]
+        branch_id = request.query_params["branch_id"]
+        stocks = instance.get_total_quantity_by_branch(branch_id=branch_id)
+        data = super(ShopProductsVariantsListSerializer, self).to_representation(instance)
+        data.update({"stocks": stocks})
+
+        return data
 
     class Meta:
         model = ProductVariant
@@ -626,8 +631,19 @@ class ShopProductsVariantsSerializer(ModelSerializer):
     price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
-    stocks = serializers.IntegerField(source="get_total_quantity")
     meta = ProductVariantMetaSerializer()
+
+    def to_representation(self, instance):
+        data = super(ShopProductsVariantsSerializer, self).to_representation(instance)
+        request = self.context["request"]
+        branch_id = request.query_params.get("branch_id", None)
+        if branch_id:
+            stocks = instance.get_total_quantity_by_branch(branch_id=branch_id)
+            data.update({"stocks": stocks})
+            return data
+
+        data.update({"stocks": 0})
+        return data
 
     class Meta:
         model = ProductVariant
@@ -642,7 +658,6 @@ class ShopProductsVariantsSerializer(ModelSerializer):
             "discount",
             "media",
             "meta",
-            "stocks",
         ]
 
 

@@ -456,6 +456,7 @@ class ShopProductsVariantsListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
         return ProductVariant.objects.filter(
             variant_status=Status.ACTIVE,
             product__product_status=Status.ACTIVE,
@@ -470,6 +471,7 @@ class ShopProductsVariantViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
         slug = self.request.query_params.get("slug", None)
         if slug:
             return ProductVariant.objects.filter(

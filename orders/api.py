@@ -91,20 +91,26 @@ class CreateOrderView(views.APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        process_request = transform_order_form_data_to_json(request.data)
-        customer = get_or_create_customer(process_request)
+        transformed_request = transform_order_form_data_to_json(request.data)
+        customer = get_or_create_customer(transformed_request)
         if customer:
-            process_request["customer"] = customer.pk
-            process_request["histories"] = create_order_initial_history()
-            serializer = CreateOrderSerializer(data=process_request)
+            transformed_request["customer"] = customer.pk
+            transformed_request["histories"] = create_order_initial_history()
+            processed_request = process_order_request(transformed_request)
+            serializer = CreateOrderSerializer(data=processed_request)
             if serializer.is_valid():
+                print(serializer)
                 order = serializer.save()
+                email_msg = None
+                email_msg = notify_customer_on_order_update_by_email(order.histories.first())
                 has_failed_upload = process_attachments(order, request.data)
                 if has_failed_upload:
                     return Response(
                         data={"detail": "Order created. Failed to upload attachments"},
                         status=status.HTTP_201_CREATED,
                     )
+                elif email_msg:
+                    return Response(data={"detail": "Order created. " + email_msg}, status=status.HTTP_201_CREATED)
                 else:
                     return Response(data={"detail": "Order created."}, status=status.HTTP_201_CREATED)
             else:
