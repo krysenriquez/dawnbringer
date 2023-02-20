@@ -63,6 +63,9 @@ class WhoAmIShopView(views.APIView):
 
             data["address_info"] = model_to_dict(account.address_info)
             data["account_id"] = account.account_id
+            data["first_name"] = account.first_name
+            data["last_name"] = account.last_name
+            data["contact_number"] = account.contact_info.contact_number
 
             return Response(
                 data=data,
