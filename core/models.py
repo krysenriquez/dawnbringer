@@ -38,7 +38,7 @@ class Activity(models.Model):
     account = models.ForeignKey(
         "accounts.Account",
         on_delete=models.SET_NULL,
-        related_name="activity",
+        related_name="activities",
         null=True,
         blank=True,
     )
@@ -52,6 +52,20 @@ class Activity(models.Model):
         default=ActivityStatus.REQUESTED,
     )
     wallet = models.CharField(max_length=32, choices=WalletType.choices, blank=True, null=True)
+    membership_level = models.ForeignKey(
+        "core.MembershipLevel",
+        on_delete=models.SET_NULL,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
+    product_variant = models.ForeignKey(
+        "products.ProductVariant",
+        on_delete=models.SET_NULL,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,

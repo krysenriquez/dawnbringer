@@ -11,6 +11,7 @@ from products.api import (
     ProductVariantInfoViewSet,
     SuppliesListViewSet,
     SuppliesInfoViewSet,
+    VerifySkuView,
     CreateProductTypeView,
     CreateProductView,
     CreateProductVariantView,
@@ -36,6 +37,7 @@ router.register(r"getsupply", SuppliesInfoViewSet)
 # Frontend
 
 urlpatterns = [
+    path("verifysku/",VerifySkuView.as_view()),
     path("createproducttype/", CreateProductTypeView.as_view()),
     path("createproduct/", CreateProductView.as_view()),
     path("createproductvariant/", CreateProductVariantView.as_view()),

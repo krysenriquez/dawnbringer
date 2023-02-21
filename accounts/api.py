@@ -5,9 +5,9 @@ from accounts.enums import AccountStatus
 from accounts.models import Account
 from accounts.serializers import (
     AccountAvatarSerializer,
-    AccountSerializer,
+    CreateAccountSerializer,
     AccountInfoSerializer,
-    AccountListSerializer,
+    AccountsListSerializer,
 )
 from accounts.services import (
     activate_account_login,
@@ -25,31 +25,24 @@ from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsMemberUser, IsS
 
 class AccountListViewSet(ModelViewSet):
     queryset = Account.objects.all()
-    serializer_class = AccountListSerializer
+    serializer_class = AccountsListSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        if self.request.user.user_type == UserType.ADMIN:
-            queryset = Account.objects.exclude(is_deleted=True).all()
-            if queryset.exists():
-                return queryset
-        else:
-            return Account.objects.none()
+        return Account.objects.exclude(is_deleted=True).all()
 
 
-class AccountProfileViewSet(ModelViewSet):
+class AccountInfoViewSet(ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountInfoSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
     http_method_names = ["get"]
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            account_id = self.request.query_params.get("account_id", None)
-            queryset = Account.objects.exclude(is_deleted=True).filter(account_id=account_id).all()
-            if queryset.exists():
-                return queryset
+        account_id = self.request.query_params.get("account_id", None)
+        if account_id:
+            return Account.objects.exclude(is_deleted=True).filter(account_id=account_id).all()
 
 
 class AccountAvatarViewSet(ModelViewSet):
@@ -71,7 +64,7 @@ class RegisterAccountView(views.APIView):
         is_verified, registration = get_registration_link_object(request.data["data"])
         if is_verified:
             processed_request = process_create_account_request(request.data, registration)
-            serializer = AccountSerializer(data=processed_request)
+            serializer = CreateAccountSerializer(data=processed_request)
             if serializer.is_valid():
                 new_member = serializer.save()
                 if new_member:

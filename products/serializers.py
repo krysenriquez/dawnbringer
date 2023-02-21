@@ -297,6 +297,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
             "variant_image",
             "variant_name",
             "sku",
+            "variant_status",
             "variant_description",
             "variant_tags",
             "product_name",

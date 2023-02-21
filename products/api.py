@@ -48,6 +48,7 @@ from products.services import (
     process_supply_request,
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
+    verify_sku,
 )
 from settings.models import Branch
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
@@ -81,7 +82,8 @@ class ProductTypeInfoViewSet(ModelViewSet):
 
     def get_queryset(self):
         product_type_id = self.request.query_params.get("product_type_id", None)
-        return ProductType.objects.filter(product_type_id=product_type_id)
+        if product_type_id:
+            return ProductType.objects.filter(product_type_id=product_type_id)
 
 
 # Product
@@ -217,6 +219,23 @@ class SuppliesInfoViewSet(ModelViewSet):
 
 
 # POST Views
+class VerifySkuView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_sku(request)
+        if is_verified:
+            return Response(
+                data={"message": "SKU Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "SKU Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
 class CreateProductTypeView(views.APIView):
     parser_classes = (MultiPartParser,)
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]

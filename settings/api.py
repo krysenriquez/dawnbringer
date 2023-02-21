@@ -2,8 +2,9 @@ from django.db.models import Prefetch
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from settings.models import Branch, BranchAssignment
+from settings.models import Company, Branch, BranchAssignment
 from settings.serializers import (
+    CompanySerializer,
     BranchesListSerializer,
     BranchAssignmentsSerializer,
     ShopBranchSerializer,
@@ -32,6 +33,16 @@ class BranchListViewSet(ModelViewSet):
 
     def get_queryset(self):
         return Branch.objects.all()
+
+
+class CompanyViewSet(ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return Company.objects.filter(id=1)
 
 
 class ShopGetDeliveryAreaAmountView(views.APIView):

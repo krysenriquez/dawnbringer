@@ -1,6 +1,11 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from accounts.models import Account, PersonalInfo, ContactInfo, AddressInfo, AvatarInfo, Code
+from orders.serializers import OrdersListSerializer
+from core.models import MembershipLevel
+from core.serializers import ActivitiesSerializer
+from core.enums import Settings
+from core.services import get_setting
 
 
 class PersonalInfoSerializer(ModelSerializer):
@@ -70,7 +75,6 @@ class AvatarInfoSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
 
     def update(self, instance, validated_data):
-        instance.file_name = validated_data.get("file_name", instance.file_name)
         instance.file_attachment = validated_data.get("file_attachment", instance.file_attachment)
         instance.save()
 
@@ -80,50 +84,59 @@ class AvatarInfoSerializer(ModelSerializer):
         model = AvatarInfo
         fields = [
             "id",
-            "file_name",
             "file_attachment",
         ]
         read_only_fields = ("account",)
 
 
 class CodeSerializer(ModelSerializer):
+    def to_representation(self, instance):
+        shop_code_link = get_setting(Settings.SHOP_CODE_LINK)
+        string = [shop_code_link, instance.code]
+        data = super(CodeSerializer, self).to_representation(instance)
+        data.update({"referral_link": "".join(string)})
+
+        return data
+
     class Meta:
         model = Code
         fields = ["code", "status"]
         read_only_fields = ("account",)
 
 
-class AccountSerializer(ModelSerializer):
+class CreateAccountSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
     personal_info = PersonalInfoSerializer(required=False)
     contact_info = ContactInfoSerializer(required=False)
     address_info = AddressInfoSerializer(required=False)
-    avatar_info = AvatarInfoSerializer(required=False)
     code = CodeSerializer(required=False)
+    avatar_info = AvatarInfoSerializer(many=True, required=False)
     referrer_name = serializers.CharField(source="self.referrer.get_fullname", required=False)
 
     def create(self, validated_data):
         personal_info = validated_data.pop("personal_info")
         contact_info = validated_data.pop("contact_info")
-        address_info = validated_data.pop("address_info")
         avatar_info = validated_data.pop("avatar_info")
         code = validated_data.pop("code")
+        address_info = validated_data.pop("address_info")
         account = Account.objects.create(**validated_data)
 
         PersonalInfo.objects.create(**personal_info, account=account)
         ContactInfo.objects.create(**contact_info, account=account)
-        AddressInfo.objects.create(**address_info, account=account)
         AvatarInfo.objects.create(**avatar_info, account=account)
         Code.objects.create(**code, account=account)
+
+        for address in address_info:
+            AddressInfo.objects.create(**address, account=account)
 
         return account
 
     def update(self, instance, validated_data):
         personal_info = validated_data.get("personal_info")
         contact_info = validated_data.get("contact_info")
-        address_info = validated_data.get("address_info")
         avatar_info = validated_data.get("avatar_info")
         code = validated_data.get("code")
+        address_info = validated_data.get("address_info")
 
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.middle_name = validated_data.get("middle_name", instance.middle_name)
@@ -151,26 +164,10 @@ class AccountSerializer(ModelSerializer):
             else:
                 e = ContactInfo.objects.create(**contact_info, account=instance)
 
-        if address_info:
-            if "id" in address_info.keys():
-                if AddressInfo.objects.filter(id=address_info["id"]).exists():
-                    e = AddressInfo.objects.get(id=address_info["id"])
-                    e.address1 = validated_data.get("address1", address_info["address1"])
-                    e.address2 = validated_data.get("address2", address_info["address2"])
-                    e.city = validated_data.get("city", address_info["city"])
-                    e.zip = validated_data.get("zip", address_info["zip"])
-                    e.province = validated_data.get("province", address_info["province"])
-                    e.country = validated_data.get("country", address_info["country"])
-                    e.address_type = validated_data.get("address_type", address_info["address_type"])
-                    e.save()
-            else:
-                e = AddressInfo.objects.create(**address_info, account=instance)
-
         if avatar_info:
             if "id" in avatar_info.keys():
                 if AvatarInfo.objects.filter(id=avatar_info["id"]).exists():
                     e = AvatarInfo.objects.get(id=avatar_info["id"])
-                    e.file_name = validated_data.get("file_name", avatar_info["file_name"])
                     e.file_attachment = validated_data.get("file_attachment", avatar_info["file_attachment"])
                     e.save()
             else:
@@ -186,6 +183,28 @@ class AccountSerializer(ModelSerializer):
             else:
                 e = Code.objects.create(**code, account=instance)
 
+        if address_info:
+            keep_address_info = []
+            for address in address_info:
+                if "id" in address.keys():
+                    if AddressInfo.objects.filter(id=address["id"]).exists():
+                        e = AddressInfo.objects.get(id=address["id"])
+                        e.address1 = validated_data.get("address1", e.address1)
+                        e.address2 = validated_data.get("address2", e.address2)
+                        e.city = validated_data.get("city", e.city)
+                        e.zip = validated_data.get("zip", e.zip)
+                        e.province = validated_data.get("province", e.province)
+                        e.country = validated_data.get("country", e.country)
+                        e.address_type = validated_data.get("address_type", e.address_type)
+                        e.save()
+                else:
+                    e = AddressInfo.objects.create(**address, account=instance)
+                    keep_address_info.append(e.id)
+
+            for address in instance.address_info.all():
+                if address.id not in address:
+                    address.delete()
+
         return instance
 
     class Meta:
@@ -193,7 +212,7 @@ class AccountSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class AccountListSerializer(ModelSerializer):
+class AccountsListSerializer(ModelSerializer):
     account_name = serializers.CharField(source="get_account_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
     referrer_account_name = serializers.CharField(source="referrer.get_account_name", required=False)
@@ -215,19 +234,47 @@ class AccountListSerializer(ModelSerializer):
 
 
 class AccountInfoSerializer(ModelSerializer):
+    code = CodeSerializer(required=False)
     personal_info = PersonalInfoSerializer(required=False)
     contact_info = ContactInfoSerializer(required=False)
-    address_info = AddressInfoSerializer(required=False)
     avatar_info = AvatarInfoSerializer(required=False)
-    referrer_name = serializers.CharField(source="referrer.get_fullname", required=False)
+    address_info = AddressInfoSerializer(many=True, required=False)
+    orders = OrdersListSerializer(many=True, required=False)
+    activities = ActivitiesSerializer(many=True, required=False)
+    referrer_name = serializers.CharField(source="referrer.get_full_name", required=False)
     referrer_account_number = serializers.CharField(source="referrer.get_account_number", required=False)
     full_name = serializers.CharField(source="get_full_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
     user_status = serializers.CharField(source="user.is_active", required=False)
 
+    def to_representation(self, instance):
+        data = super(AccountInfoSerializer, self).to_representation(instance)
+        membership_levels = MembershipLevel.objects.all()
+        if membership_levels:
+            points = []
+            for level in membership_levels:
+                total = instance.get_membership_level_points(membership_level=level)
+                points.append({"membership_level": level.name, "total_points": total})
+            data.update({"membership_level_points": points})
+        return data
+
     class Meta:
         model = Account
-        fields = "__all__"
+        fields = [
+            "personal_info",
+            "contact_info",
+            "code",
+            "avatar_info",
+            "address_info",
+            "orders",
+            "activities",
+            "referrer_name",
+            "referrer_account_number",
+            "full_name",
+            "account_number",
+            "account_status",
+            "user_status",
+        ]
 
 
 class AccountAvatarSerializer(ModelSerializer):

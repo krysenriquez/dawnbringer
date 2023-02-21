@@ -4,7 +4,7 @@ from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from products.enums import SupplyStatus
-from products.models import ProductMedia, Supply
+from products.models import ProductMedia, ProductVariant, Supply
 from settings.models import Branch
 
 
@@ -202,3 +202,11 @@ def notify_branch_to_on_supply_update_by_email(supply_history):
         return construct_and_send_email_payload(email_subject, email_body, branch_to.email_address)
 
     return None
+
+
+def verify_sku(request):
+    sku = request.data["sku"]
+    queryset= ProductVariant.objects.filter(sku=sku)
+    if queryset.exists():
+        return False
+    return True

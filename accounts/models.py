@@ -1,6 +1,9 @@
 import uuid
 from django.db import models
+from django.db.models import Sum, Max, F, Prefetch
+from django.db.models.functions import Coalesce
 from accounts.enums import AccountStatus, AddressType, CodeStatus, Gender
+from core.enums import ActivityType
 
 
 def account_avatar_directory(instance, filename):
@@ -69,10 +72,12 @@ class Account(models.Model):
         ordering = ["-created", "-id"]
 
     def get_full_name(self):
-        return "%s %s %s" % (self.first_name, self.middle_name, self.last_name)
+        strings = [self.first_name, self.middle_name, self.last_name]
+        return " ".join(filter(None, strings))
 
     def get_account_name(self):
-        return "%s %s" % (self.first_name, self.last_name)
+        strings = [self.first_name, self.last_name]
+        return " ".join(filter(None, strings))
 
     def get_account_number(self):
         return str(self.id).zfill(5)
@@ -118,6 +123,13 @@ class Account(models.Model):
             self.referrer.get_four_level_referrers(referrers, level)
         return referrers
 
+    def get_membership_level_points(self, membership_level=None):
+        return (
+            self.activities.filter(membership_level=membership_level, activity_type=ActivityType.REFERRAL_LINK_USAGE)
+            .aggregate(total=Coalesce(Sum("activity_amount"), 0, output_field=models.DecimalField()))
+            .get("total")
+        )
+
     def __str__(self):
         return "%s" % (self.get_full_name())
 
@@ -153,8 +165,36 @@ class ContactInfo(models.Model):
         )
 
 
+class AvatarInfo(models.Model):
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="avatar_info")
+    file_attachment = models.ImageField(blank=True, upload_to=account_avatar_directory)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "%s : %s" % (
+            self.account,
+            self.file_attachment,
+        )
+
+
+class Code(models.Model):
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="code")
+    code = models.CharField(max_length=30, null=True, blank=True)
+    status = models.CharField(max_length=32, choices=CodeStatus.choices, default=CodeStatus.ACTIVE)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "%s :  %s - %s" % (
+            self.account,
+            self.code,
+            self.status,
+        )
+
+
 class AddressInfo(models.Model):
-    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="address_info")
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="address_info")
     address1 = models.CharField(
         max_length=255,
         null=True,
@@ -197,36 +237,6 @@ class AddressInfo(models.Model):
         return "%s : %s" % (
             self.account,
             self.address_type,
-        )
-
-
-class AvatarInfo(models.Model):
-    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="avatar_info")
-    file_name = models.CharField(max_length=255, null=True, blank=True)
-    file_attachment = models.ImageField(blank=True, upload_to=account_avatar_directory)
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return "%s : %s - %s" % (
-            self.account,
-            self.file_attachment,
-            self.file_name,
-        )
-
-
-class Code(models.Model):
-    account = models.OneToOneField(Account, on_delete=models.CASCADE, null=True, blank=True, related_name="code")
-    code = models.CharField(max_length=30, null=True, blank=True)
-    status = models.CharField(max_length=32, choices=CodeStatus.choices, default=CodeStatus.ACTIVE)
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return "%s :  %s - %s" % (
-            self.account,
-            self.code,
-            self.status,
         )
 
 

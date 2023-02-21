@@ -96,7 +96,7 @@ class Order(models.Model):
     )
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, related_name="orders", null=True, blank=True)
     account = models.ForeignKey(
-        "accounts.Account", on_delete=models.SET_NULL, related_name="account_order", null=True, blank=True
+        "accounts.Account", on_delete=models.SET_NULL, related_name="orders", null=True, blank=True
     )
     promo_code = models.ForeignKey(
         "accounts.Code", on_delete=models.SET_NULL, related_name="order", null=True, blank=True

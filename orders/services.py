@@ -46,6 +46,7 @@ def get_account(request):
 
     return account
 
+
 def get_or_create_customer(request):
     obj, created = Customer.objects.get_or_create(
         name=request["customer"]["name"],
@@ -74,13 +75,11 @@ def process_order_request(request):
     branch = get_object_or_404(Branch, branch_id=request["branch"])
 
     data = {
-        "account": request["account"],
         "order_type": request["order_type"],
         "payment_method": request["payment_method"],
         "order_notes": request["order_notes"],
         "order_date": request["order_date"],
         "fees": request["fees"],
-        "customer": request["customer"],
         "histories": request["histories"],
         "branch": branch.pk,
     }

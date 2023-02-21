@@ -164,6 +164,7 @@ def convert_point_value_queryset_to_map(point_values):
     data = {}
     for point_value in point_values:
         data[point_value.membership_level.level] = {
+            "membership_level": point_value.membership_level,
             "name": point_value.membership_level.name,
             "level": point_value.membership_level.level,
             "point_value": point_value.point_value,
@@ -178,6 +179,8 @@ def create_activity(
     activity_amount=None,
     status=None,
     wallet=None,
+    membership_level=None,
+    product_variant=None,
     content_type=None,
     object_id=None,
     user=None,
@@ -189,6 +192,8 @@ def create_activity(
             activity_amount=activity_amount,
             status=status,
             wallet=wallet,
+            membership_level=membership_level,
+            product_variant=product_variant,
             content_type=content_type,
             object_id=object_id,
             created_by=user,
@@ -200,20 +205,24 @@ def create_activity(
             activity_amount=activity_amount,
             status=status,
             wallet=wallet,
+            membership_level=membership_level,
+            product_variant=product_variant,
             content_type=content_type,
             object_id=object_id,
         )
 
 
-def create_referral_link_usage_activity(request, order, account, point_value):
+def create_referral_link_usage_activity(request, order, account, point_value, membership_level, product_variant):
     content_type = ContentType.objects.get(model="order")
 
     return create_activity(
-        account=account.pk,
-        activity_type=ActivityType.ENTRY,
+        account=account,
+        activity_type=ActivityType.REFERRAL_LINK_USAGE,
         activity_amount=point_value,
         status=ActivityStatus.DONE,
-        wallet=WalletType.M_WALLET,
+        wallet=WalletType.PV_WALLET,
+        membership_level=membership_level,
+        product_variant=product_variant,
         content_type=content_type,
         object_id=order.pk,
         user=request.user,
@@ -288,4 +297,11 @@ def comp_plan(request, order):
             quantity = detail.quantity
             point_values = convert_point_value_queryset_to_map(detail.product_variant.point_values.all())
             for _ in range(quantity):
-                create_referral_link_usage_activity(request, order, account, point_values[level]["point_value"])
+                create_referral_link_usage_activity(
+                    request,
+                    order,
+                    account,
+                    point_values[level]["point_value"],
+                    point_values[level]["membership_level"],
+                    detail.product_variant,
+                )

@@ -1,7 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from accounts.api import (
     AccountListViewSet,
-    AccountProfileViewSet,
+    AccountInfoViewSet,
     AccountAvatarViewSet,
     RegisterAccountView,
     VerifyRegistrationView,
@@ -10,8 +10,9 @@ from accounts.api import (
 from django.urls import path
 
 router = DefaultRouter()
-router.register(r"getprofile", AccountProfileViewSet)
+# Admin
 router.register(r"getmembers", AccountListViewSet)
+router.register(r"getmember", AccountInfoViewSet)
 router.register(r"getaccount", AccountAvatarViewSet)
 
 urlpatterns = [

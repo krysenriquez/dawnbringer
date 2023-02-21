@@ -1,6 +1,12 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from settings.models import Branch, BranchAssignment, DeliveryArea
+from settings.models import Branch, BranchAssignment, Company, DeliveryArea
+
+
+class CompanySerializer(ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ["name", "description", "logo"]
 
 
 class BranchesListSerializer(ModelSerializer):

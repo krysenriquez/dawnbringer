@@ -10,38 +10,6 @@ from orders.models import (
     OrderHistory,
 )
 
-# Customers
-class AddressesSerializer(ModelSerializer):
-    class Meta:
-        model = Address
-        fields = [
-            "address1",
-            "address2",
-            "city",
-            "zip",
-            "province",
-            "country",
-            "address_type",
-        ]
-
-
-class CustomersListSerializer(ModelSerializer):
-    address = AddressesSerializer(many=True, required=False)
-    order_count = serializers.CharField(source="get_orders_count", required=False)
-    customer_number = serializers.CharField(source="get_customer_number", required=False)
-
-    class Meta:
-        model = Customer
-        fields = [
-            "address",
-            "order_count",
-            "customer_number",
-            "name",
-            "email_address",
-            "contact_number",
-        ]
-
-
 # Orders
 class ProductVariantOrderDetailsSerializer(ModelSerializer):
     order_number = serializers.CharField(source="order.get_order_number", required=False)
@@ -58,6 +26,37 @@ class ProductVariantOrderDetailsSerializer(ModelSerializer):
             "discount",
             "quantity",
             "total_amount",
+        ]
+
+
+class OrderCustomerAddressesSerializer(ModelSerializer):
+    class Meta:
+        model = Address
+        fields = [
+            "address1",
+            "address2",
+            "city",
+            "zip",
+            "province",
+            "country",
+            "address_type",
+        ]
+
+
+class OrderCustomerCustomersListSerializer(ModelSerializer):
+    address = OrderCustomerAddressesSerializer(many=True, required=False)
+    order_count = serializers.CharField(source="get_orders_count", required=False)
+    customer_number = serializers.CharField(source="get_customer_number", required=False)
+
+    class Meta:
+        model = Customer
+        fields = [
+            "address",
+            "order_count",
+            "customer_number",
+            "name",
+            "email_address",
+            "contact_number",
         ]
 
 
@@ -141,7 +140,7 @@ class OrderInfoSerializer(ModelSerializer):
     attachments = OrderAttachmentsSerializer(many=True, required=False)
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
-    customer = CustomersListSerializer()
+    customer = OrderCustomerCustomersListSerializer()
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
     current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     order_number = serializers.CharField(source="get_order_number", required=False)
@@ -193,3 +192,52 @@ class CreateOrderSerializer(ModelSerializer):
     class Meta:
         model = Order
         fields = "__all__"
+
+
+# Customers
+class AddressesSerializer(ModelSerializer):
+    class Meta:
+        model = Address
+        fields = [
+            "address1",
+            "address2",
+            "city",
+            "zip",
+            "province",
+            "country",
+            "address_type",
+        ]
+
+
+class CustomersListSerializer(ModelSerializer):
+    order_count = serializers.CharField(source="get_orders_count", required=False)
+    customer_number = serializers.CharField(source="get_customer_number", required=False)
+
+    class Meta:
+        model = Customer
+        fields = [
+            "order_count",
+            "customer_number",
+            "name",
+            "email_address",
+            "contact_number",
+        ]
+
+
+class CustomerInfoSerializer(ModelSerializer):
+    orders = OrdersListSerializer(many=True, required=False)
+    address = AddressesSerializer(many=True, required=False)
+    order_count = serializers.CharField(source="get_orders_count", required=False)
+    customer_number = serializers.CharField(source="get_customer_number", required=False)
+
+    class Meta:
+        model = Customer
+        fields = [
+            "orders",
+            "address",
+            "order_count",
+            "customer_number",
+            "name",
+            "email_address",
+            "contact_number",
+        ]
