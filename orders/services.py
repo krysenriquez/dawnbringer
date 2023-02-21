@@ -43,7 +43,7 @@ def transform_order_form_data_to_json(request):
 
 def get_account(request):
     account = get_object_or_none(Account, account_id=request["account"])
-
+    print(account)
     return account
 
 

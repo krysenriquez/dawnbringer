@@ -52,6 +52,7 @@ from products.services import (
 )
 from settings.models import Branch
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
+from vanguard.throttle import DevTestingAnonThrottle
 
 # Product Type
 class ProductTypeOptionsViewSet(ModelViewSet):
@@ -391,6 +392,7 @@ class ShopProductTypesListViewSet(ModelViewSet):
     serializer_class = ShopProductTypesSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         return (
@@ -410,6 +412,7 @@ class ShopProductTypeViewSet(ModelViewSet):
     serializer_class = ShopProductTypesSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         slug = self.request.query_params.get("slug", None)
@@ -431,6 +434,7 @@ class ShopProductsListViewSet(ModelViewSet):
     serializer_class = ShopProductsSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         return (
@@ -450,6 +454,7 @@ class ShopProductViewSet(ModelViewSet):
     serializer_class = ShopProductsSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         slug = self.request.query_params.get("slug", None)
@@ -473,6 +478,7 @@ class ShopProductsVariantsListViewSet(ModelViewSet):
     serializer_class = ShopProductsVariantsSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         branch_id = self.request.query_params.get("branch_id", None)
@@ -488,6 +494,7 @@ class ShopProductsVariantViewSet(ModelViewSet):
     serializer_class = ShopProductsVariantsSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         branch_id = self.request.query_params.get("branch_id", None)

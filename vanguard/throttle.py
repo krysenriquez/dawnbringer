@@ -31,3 +31,11 @@ class TwentyFivePerMinuteAnonThrottle(AnonRateThrottle):
 
 class ThirtyPerMinuteAnonThrottle(AnonRateThrottle):
     rate = "30/minute"
+
+
+class MaxAnonThrottle(AnonRateThrottle):
+    rate = "100/minute"
+
+
+class DevTestingAnonThrottle(AnonRateThrottle):
+    rate = "100/minute"

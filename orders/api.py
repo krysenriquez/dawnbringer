@@ -126,14 +126,16 @@ class CreateOrderView(views.APIView):
         transformed_request["histories"] = create_order_initial_history()
         processed_request = process_order_request(transformed_request)
 
-        account = get_account(transformed_request)
+        if transformed_request["account"]:
+            account = get_account(transformed_request)
+
+        if account is not None:
+            processed_request["account"] = account.pk
+
         if account is None:
             customer = get_or_create_customer(transformed_request)
             if customer is not None:
                 processed_request["customer"] = customer.pk
-
-        if account is not None:
-            processed_request["account"] = account.pk
 
         if account is not None or customer is not None:
             serializer = CreateOrderSerializer(data=processed_request)

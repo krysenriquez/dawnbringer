@@ -61,7 +61,7 @@ class WhoAmIShopView(views.APIView):
             if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
                 data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
 
-            data["address_info"] = model_to_dict(account.address_info)
+            data["address_info"] = account.address_info.values()
             data["account_id"] = account.account_id
             data["first_name"] = account.first_name
             data["last_name"] = account.last_name

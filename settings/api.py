@@ -11,6 +11,7 @@ from settings.serializers import (
     ShopDeliveryAreaSerializer,
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
+from vanguard.throttle import DevTestingAnonThrottle
 
 
 class BranchAssignmentsViewSet(ModelViewSet):
@@ -65,6 +66,7 @@ class ShopBranchListViewSet(ModelViewSet):
     serializer_class = ShopBranchSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         return Branch.objects.all()
@@ -75,6 +77,7 @@ class ShopBranchInfoViewSet(ModelViewSet):
     serializer_class = ShopBranchSerializer
     permission_classes = []
     http_method_names = ["get"]
+    throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
         branch_id = self.request.query_params.get("branch_id", None)
