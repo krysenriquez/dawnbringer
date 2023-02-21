@@ -6,8 +6,8 @@ from accounts.models import Account, Registration, Code
 from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
-from orders.models import Customer, Address, Order, OrderAttachments
-from orders.enums import OrderStatus
+from orders.models import Customer, Order, OrderAttachments
+from orders.enums import OrderStatus, OrderType
 from products.models import ProductVariant
 from settings.models import Branch
 
@@ -43,7 +43,7 @@ def transform_order_form_data_to_json(request):
 
 def get_account(request):
     account = get_object_or_none(Account, account_id=request["account"])
-    print(account)
+
     return account
 
 
@@ -54,15 +54,7 @@ def get_or_create_customer(request):
         contact_number=request["customer"]["contact_number"],
     )
 
-    if created:
-        create_customer_address(obj, request["customer"]["address"])
-
     return obj
-
-
-def create_customer_address(customer, addresses):
-    for address in addresses:
-        Address.objects.create(**address, customer=customer)
 
 
 def process_order_request(request):
@@ -83,6 +75,11 @@ def process_order_request(request):
         "histories": request["histories"],
         "branch": branch.pk,
     }
+
+    if request["order_type"] == OrderType.DELIVERY and request["address"]:
+        data["address"] = request["address"]
+    else:
+        data["address"] = {}
 
     if request["code"]:
         promo_code = get_object_or_none(Code, code=request["code"])

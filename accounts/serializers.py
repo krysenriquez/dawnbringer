@@ -189,6 +189,8 @@ class CreateAccountSerializer(ModelSerializer):
                 if "id" in address.keys():
                     if AddressInfo.objects.filter(id=address["id"]).exists():
                         e = AddressInfo.objects.get(id=address["id"])
+                        e.is_default = validated_data.get("is_default", e.is_default)
+                        e.label = validated_data.get("label", e.label)
                         e.address1 = validated_data.get("address1", e.address1)
                         e.address2 = validated_data.get("address2", e.address2)
                         e.city = validated_data.get("city", e.city)

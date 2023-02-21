@@ -35,60 +35,6 @@ class Customer(models.Model):
         return "%s" % (self.name)
 
 
-class Address(models.Model):
-    customer = models.ForeignKey(
-        Customer,
-        on_delete=models.CASCADE,
-        related_name="address",
-        null=True,
-    )
-    address1 = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    address2 = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    city = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    zip = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    province = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    country = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-    )
-    address_type = models.CharField(
-        max_length=11,
-        choices=AddressType.choices,
-        default=AddressType.SHIPPING,
-    )
-
-    def __str__(self):
-        return "%s : %s %s %s %s - %s" % (
-            self.customer,
-            self.address1,
-            self.address2,
-            self.city,
-            self.province,
-            self.address_type,
-        )
-
-
 class Order(models.Model):
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     branch = models.ForeignKey(
@@ -212,6 +158,56 @@ class OrderFee(models.Model):
             self.order,
             self.fee_type,
             self.amount,
+        )
+
+
+class OrderAddress(models.Model):
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="address",
+        null=True,
+    )
+    address1 = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    address2 = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    city = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    zip = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    province = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+    country = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return "%s - %s %s %s %s %s %s" % (
+            self.order,
+            self.address1,
+            self.address2,
+            self.city,
+            self.zip,
+            self.province,
+            self.country,
         )
 
 

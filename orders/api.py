@@ -140,9 +140,9 @@ class CreateOrderView(views.APIView):
         if account is not None or customer is not None:
             serializer = CreateOrderSerializer(data=processed_request)
             if serializer.is_valid():
-                print(serializer)
-                order = serializer.save()
                 email_msg = None
+                has_failed_upload = False
+                order = serializer.save()
                 email_msg = notify_customer_on_order_update_by_email(order.histories.first())
                 has_failed_upload = process_attachments(order, request.data)
                 if has_failed_upload:

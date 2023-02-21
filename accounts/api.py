@@ -128,6 +128,32 @@ class VerifyAccountView(views.APIView):
                 )
 
 
+# class UpdateAccountView(views.APIView):
+#     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+
+#     def post(self, request, *args, **kwargs):
+#         account = Account.objects.get(user=request.user)
+#         data = transform_account_form_data_to_json(request.data)
+
+#         serializer = AccountSerializer(account, data=data, partial=True)
+#         if serializer.is_valid():
+#             updated_member = serializer.save()
+#             if updated_member:
+#                 return Response(
+#                     data={"message": "Profile updated"},
+#                     status=status.HTTP_200_OK,
+#                 )
+#             return Response(
+#                 data={"message": "Unable to update Account"},
+#                 status=status.HTTP_409_CONFLICT,
+#             )
+#         else:
+#             return Response(
+#                 data={"message": "Unable to update Account"},
+#                 status=status.HTTP_409_CONFLICT,
+#             )
+
+
 # Shop
 class VerifyCodeView(views.APIView):
     permission_classes = []
