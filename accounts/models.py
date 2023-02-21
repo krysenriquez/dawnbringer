@@ -195,6 +195,11 @@ class Code(models.Model):
 
 class AddressInfo(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="address_info")
+    label = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
     address1 = models.CharField(
         max_length=255,
         null=True,
@@ -229,6 +234,9 @@ class AddressInfo(models.Model):
         max_length=11,
         choices=AddressType.choices,
         default=AddressType.SHIPPING,
+    )
+    is_default = models.BooleanField(
+        default=False,
     )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
