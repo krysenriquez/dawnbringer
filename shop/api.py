@@ -34,6 +34,4 @@ class SectionComponentsViewSet(ModelViewSet):
     throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
-        name = self.request.query_params.get("name", None)
-        if name is not None:
-            return SectionComponent.objects.filter(is_deleted=True)
+        return SectionComponent.objects.filter(is_deleted=True)
