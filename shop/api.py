@@ -12,7 +12,7 @@ class PageContentsViewSet(ModelViewSet):
     throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
-        return PageContent.objects.exclude(is_deleted=True)
+        return PageContent.objects.exclude(is_deleted=True).filter(is_published=True)
 
 
 class PageComponentsViewSet(ModelViewSet):
@@ -23,7 +23,7 @@ class PageComponentsViewSet(ModelViewSet):
     throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
-        return PageComponent.objects.exclude(is_deleted=True)
+        return PageComponent.objects.exclude(is_deleted=True).filter(is_published=True)
 
 
 class SectionComponentsViewSet(ModelViewSet):
@@ -34,4 +34,4 @@ class SectionComponentsViewSet(ModelViewSet):
     throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
-        return SectionComponent.objects.filter(is_deleted=True)
+        return SectionComponent.objects.exclude(is_deleted=True).filter(is_published=True)
