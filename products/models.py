@@ -151,8 +151,6 @@ class ProductMeta(models.Model):
 
 
 # Product Variant
-
-
 class ProductVariant(models.Model):
     product = models.ForeignKey("products.Product", on_delete=models.CASCADE, related_name="product_variants")
     variant_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -276,11 +274,13 @@ class Price(models.Model):
         related_name="price",
         null=True,
     )
-    price = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
-    discount = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
+    base_price = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
+    discounted_price = models.DecimalField(
+        default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
+    )
 
     def __str__(self):
-        return "%s - %s" % (self.variant, self.price)
+        return "%s - %s" % (self.variant, self.discounted_price)
 
 
 class PointValue(models.Model):

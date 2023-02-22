@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db.models import Prefetch, Q, Sum, Max, F
 from rest_framework import status, views, permissions
 from rest_framework.parsers import MultiPartParser
@@ -48,6 +49,7 @@ from products.services import (
     process_supply_request,
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
+    verify_product_name,
     verify_sku,
 )
 from settings.models import Branch
@@ -220,6 +222,23 @@ class SuppliesInfoViewSet(ModelViewSet):
 
 
 # POST Views
+class VerifyProductView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_product_name(request)
+        if is_verified:
+            return Response(
+                data={"message": "Product Name Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Product Name Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
 class VerifySkuView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
@@ -242,9 +261,9 @@ class CreateProductTypeView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        process_request = transform_form_data_to_json(request.data)
-        process_request["created_by"] = request.user.pk
-        serializer = CreateProductTypeSerializer(data=process_request)
+        processed_request = transform_form_data_to_json(request.data)
+        processed_request["created_by"] = request.user.pk
+        serializer = CreateProductTypeSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Product Type created."}, status=status.HTTP_201_CREATED)
@@ -252,6 +271,30 @@ class CreateProductTypeView(views.APIView):
             print(serializer.errors)
             return Response(
                 data={"detail": "Unable to create Product Type."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateProductTypeView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        processed_request = transform_form_data_to_json(request.data)
+        product_type = ProductType.objects.get(product_type_id=processed_request["product_type_id"])
+        print(processed_request["meta"])
+        serializer = CreateProductTypeSerializer(product_type, data=processed_request, partial=True)
+        if serializer.is_valid():
+            updated_product_type = serializer.save()
+            if updated_product_type:
+                return Response(data={"detail": "Product Type updated."}, status=status.HTTP_201_CREATED)
+            return Response(
+                data={"detail": "Unable to update Product Type."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            return Response(
+                data={"detail": "Unable to update Product Type."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -271,6 +314,29 @@ class CreateProductView(views.APIView):
             print(serializer.errors)
             return Response(
                 data={"detail": "Unable to create Product."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateProductView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        processed_request = transform_form_data_to_json(request.data)
+        product = Product.objects.get(product_id=processed_request["product_id"])
+        serializer = CreateProductSerializer(product, data=processed_request, partial=True)
+        if serializer.is_valid():
+            updated_product = serializer.save()
+            if updated_product:
+                return Response(data={"detail": "Product updated."}, status=status.HTTP_201_CREATED)
+            return Response(
+                data={"detail": "Unable to update Product."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        else:
+            return Response(
+                data={"detail": "Unable to update Product."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -296,6 +362,30 @@ class CreateProductVariantView(views.APIView):
             print(serializer.errors)
             return Response(
                 data={"detail": "Unable to create Variant."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateProductVariantView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        processed_request = transform_variant_form_data_to_json(request.data)
+        product_variant = ProductVariant.objects.get(variant_id=processed_request["variant_id"])
+
+        serializer = CreateProductVariantsSerializer(product_variant, data=processed_request, partial=True)
+        if serializer.is_valid():
+            variant = serializer.save()
+            has_failed_upload = process_media(variant, request.data)
+            if has_failed_upload:
+                return Response(
+                    data={"detail": "Variant updated. Failed to upload attachments"}, status=status.HTTP_201_CREATED
+                )
+            return Response(data={"detail": "Variant updated."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"detail": "Unable to update Variant."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

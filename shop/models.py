@@ -99,6 +99,8 @@ class SectionComponent(models.Model):
         null=True,
     )
     background_image = models.ImageField(blank=True, upload_to=component_attachments_directory)
+    is_published = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return "%s : %s" % (self.name, self.is_published)

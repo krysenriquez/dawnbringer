@@ -323,4 +323,4 @@ class Delivery(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return "%s - %s" % (self.variant, self.quantity)
+        return "%s - %s" % (self.branch, self.order)

@@ -205,27 +205,40 @@ class ProductVariantSupplyDetailsSerializer(ModelSerializer):
 
 
 class PointValuesSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    membership_level_label = serializers.CharField(source="membership_level.name", required=False)
+
     class Meta:
         model = PointValue
         fields = "__all__"
+        read_only_fields = ("variant",)
 
 
 class ProductVariantMetaSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = ProductVariantMeta
         fields = "__all__"
+        read_only_fields = ("variant",)
 
 
 class ProductMediasSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = ProductMedia
         fields = "__all__"
+        read_only_fields = ("variant",)
 
 
 class PricesSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = Price
         fields = "__all__"
+        read_only_fields = ("variant",)
 
 
 class ProductVariantOptionsSerializer(ModelSerializer):
@@ -239,7 +252,7 @@ class ProductVariantOptionsSerializer(ModelSerializer):
 
 class ProductVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
-    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
+    base_price = serializers.DecimalField(source="price.base_price", decimal_places=2, max_digits=13)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     def to_representation(self, instance):
@@ -262,7 +275,7 @@ class ProductVariantsListSerializer(ModelSerializer):
             "variant_name",
             "product_name",
             "sku",
-            "price",
+            "base_price",
             "variant_status",
             "created_by_name",
         ]
@@ -271,11 +284,11 @@ class ProductVariantsListSerializer(ModelSerializer):
 class ProductVariantInfoSerializer(ModelSerializer):
     orders = ProductVariantOrderDetailsSerializer(many=True, required=False)
     supplies = ProductVariantSupplyDetailsSerializer(many=True, required=False)
-    meta = ProductVariantMetaSerializer()
+    point_values = PointValuesSerializer(many=True, required=False)
     media = ProductMediasSerializer(many=True, required=False)
+    meta = ProductVariantMetaSerializer()
+    price = PricesSerializer()
     product_name = serializers.CharField(source="product.product_name", required=False)
-    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
-    discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
 
     def to_representation(self, instance):
@@ -290,20 +303,22 @@ class ProductVariantInfoSerializer(ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = [
-            "meta",
-            "media",
             "supplies",
             "orders",
+            "point_values",
+            "media",
+            "meta",
+            "price",
+            "product_name",
+            "created_by_name",
+            "product",
+            "variant_id",
             "variant_image",
             "variant_name",
             "sku",
             "variant_status",
             "variant_description",
             "variant_tags",
-            "product_name",
-            "price",
-            "discount",
-            "created_by_name",
             "created",
             "modified",
         ]
@@ -332,63 +347,49 @@ class CreateProductVariantsSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):
         price = validated_data.get("price")
+        meta = validated_data.get("meta")
         point_values = validated_data.get("point_values")
-        media = validated_data.get("media")
 
         instance.variant_name = validated_data.get("variant_name", instance.variant_name)
+        instance.variant_image = validated_data.get("variant_image", instance.variant_image)
         instance.variant_description = validated_data.get("variant_description", instance.variant_description)
+        instance.variant_tags = validated_data.get("variant_tags", instance.variant_tags)
+        instance.variant_status = validated_data.get("variant_status", instance.variant_status)
         instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
         instance.save()
-
-        keep_media = []
-        if media:
-            for variant_media in media:
-                if "id" in variant_media.keys():
-                    if ProductMedia.objects.filter(id=media["id"]).exists():
-                        e = ProductMedia.objects.get(id=media["id"])
-                        e.file_name = validated_data.get("file_name", e.file_name)
-                        e.attachment = validated_data.get("attachment", e.attachment)
-                        e.save()
-                        keep_media.append(e.id)
-                    else:
-                        continue
-                else:
-                    e = ProductMedia.objects.create(**variant_media, variant=instance)
-                    keep_media.append(e.id)
-
-            for variant_media in instance.media.all():
-                if variant_media.id not in keep_media:
-                    variant_media.delete()
 
         if price:
             if "id" in price.keys():
                 if Price.objects.filter(id=price["id"]).exists():
                     e = Price.objects.get(id=price["id"])
-                    e.price = validated_data.get("price", e.price)
-                    e.discount = validated_data.get("discount", e.discount)
+                    e.base_price = validated_data.get("base_price", price["base_price"])
+                    e.discounted_price = validated_data.get("discounted_price", price["discounted_price"])
                     e.save()
             else:
                 e = Price.objects.create(**price, variant=instance)
 
-        keep_point_values = []
+        if meta:
+            if "id" in meta.keys():
+                if ProductVariantMeta.objects.filter(id=meta["id"]).exists():
+                    e = ProductVariantMeta.objects.get(id=meta["id"])
+                    e.meta_tag_title = validated_data.get("meta_tag_title", meta["meta_tag_title"])
+                    e.meta_tag_description = validated_data.get("meta_tag_description", meta["meta_tag_description"])
+                    e.page_slug = validated_data.get("page_slug", meta["page_slug"])
+                    e.save()
+            else:
+                e = ProductVariantMeta.objects.create(**meta, variant=instance)
+
         if point_values:
             for point_value in point_values:
                 if "id" in point_value.keys():
-                    if PointValue.objects.filter(id=point_values["id"]).exists():
-                        e = PointValue.objects.get(id=point_values["id"])
-                        e.membership_level = validated_data.get("membership_level", e.membership_level)
-                        e.point_value = validated_data.get("point_value", e.point_value)
+                    if PointValue.objects.filter(id=point_value["id"]).exists():
+                        e = PointValue.objects.get(id=point_value["id"])
+                        e.point_value = validated_data.get("point_value", point_value["point_value"])
                         e.save()
-                        keep_point_values.append(e.id)
-                    else:
-                        continue
                 else:
                     e = PointValue.objects.create(**point_value, variant=instance)
-                    keep_point_values.append(e.id)
 
-            for point_value in instance.point_values.all():
-                if point_value.id not in keep_point_values:
-                    point_value.delete()
+        return instance
 
     class Meta:
         model = ProductVariant
@@ -397,6 +398,8 @@ class CreateProductVariantsSerializer(ModelSerializer):
 
 # Product
 class ProductMetaSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = ProductMeta
         fields = "__all__"
@@ -447,6 +450,7 @@ class ProductInfoSerializer(ModelSerializer):
             "product_description",
             "product_image",
             "product_tags",
+            "product_type",
             "product_type_name",
             "product_variants_count",
             "enabled_variant_name",
@@ -476,6 +480,7 @@ class CreateProductSerializer(ModelSerializer):
         instance.product_image = validated_data.get("product_image", instance.product_image)
         instance.product_status = validated_data.get("product_status", instance.product_status)
         instance.product_description = validated_data.get("product_description", instance.product_description)
+        instance.product_tags = validated_data.get("product_tags", instance.product_tags)
         instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
         instance.save()
 
@@ -499,6 +504,8 @@ class CreateProductSerializer(ModelSerializer):
 
 # Product Type
 class ProductTypeMetaSerializer(ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
     class Meta:
         model = ProductTypeMeta
         fields = "__all__"
@@ -562,13 +569,14 @@ class CreateProductTypeSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):
         meta = validated_data.get("meta")
-
+        print(meta)
         instance.product_type = validated_data.get("product_type", instance.product_type)
         instance.product_type_image = validated_data.get("product_type_image", instance.product_type_image)
         instance.product_type_status = validated_data.get("product_type_status", instance.product_type_status)
         instance.product_type_description = validated_data.get(
             "product_type_description", instance.product_type_description
         )
+        instance.product_type_tags = validated_data.get("product_type_tags", instance.product_type_tags)
         instance.save()
 
         if meta:
@@ -580,7 +588,7 @@ class CreateProductTypeSerializer(ModelSerializer):
                     e.page_slug = validated_data.get("page_slug", meta["page_slug"])
                     e.save()
             else:
-                e = ProductTypeMeta.objects.create(**meta, account=instance)
+                e = ProductTypeMeta.objects.create(**meta, product_type=instance)
 
         return instance
 
@@ -594,8 +602,8 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
     product_type = serializers.CharField(source="product.product_type.product_type", required=False)
     product_name = serializers.CharField(source="product.product_name", required=False)
     category = serializers.CharField(source="product.product_type.type", required=False)
-    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
-    discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
+    price = serializers.DecimalField(source="price.base_price", decimal_places=2, max_digits=13)
+    discount = serializers.DecimalField(source="price.discounted_price", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
     meta = ProductVariantMetaSerializer()
 
@@ -629,8 +637,8 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
 # Child of ShopProductList
 class ShopProductsVariantsSerializer(ModelSerializer):
     product_type = serializers.CharField(source="product.product_type.product_type", required=False)
-    price = serializers.DecimalField(source="price.price", decimal_places=2, max_digits=13)
-    discount = serializers.DecimalField(source="price.discount", decimal_places=2, max_digits=13)
+    price = serializers.DecimalField(source="price.base_price", decimal_places=2, max_digits=13)
+    discount = serializers.DecimalField(source="price.discounted_price", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
     meta = ProductVariantMetaSerializer()
 

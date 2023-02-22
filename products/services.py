@@ -4,7 +4,7 @@ from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from products.enums import SupplyStatus
-from products.models import ProductMedia, ProductVariant, Supply
+from products.models import Product, ProductMedia, ProductVariant, Supply
 from settings.models import Branch
 
 
@@ -67,13 +67,25 @@ def create_variant_initial_supply(data, request):
 
 def process_media(variant, request):
     has_failed_upload = False
-    attachments_dict = dict((request).lists())["media"]
+    keep_media = []
+    if dict((request).lists()).get("media", None):
+        attachments_dict = dict((request).lists())["media"]
+        for attachment in attachments_dict:
+            if type(attachment) != str:
+                data = {"variant": variant, "attachment": attachment}
+                e = ProductMedia.objects.create(**data)
+                if e is not None:
+                    keep_media.append(e.id)
 
-    for attachment in attachments_dict:
-        data = {"variant": variant, "attachment": attachment}
-        success = ProductMedia.objects.create(**data)
-        if success is None:
-            has_failed_upload = True
+                if e is None:
+                    has_failed_upload = True
+            else:
+                e = ProductMedia.objects.get(id=attachment)
+                keep_media.append(e.id)
+
+    for attachment in variant.media.all():
+        if attachment.id not in keep_media:
+            attachment.delete()
 
     return has_failed_upload
 
@@ -206,7 +218,17 @@ def notify_branch_to_on_supply_update_by_email(supply_history):
 
 def verify_sku(request):
     sku = request.data["sku"]
-    queryset= ProductVariant.objects.filter(sku=sku)
+    variant_id = request.data["variant_id"]
+    queryset = ProductVariant.objects.exclude(variant_id=variant_id).filter(sku=sku)
+    if queryset.exists():
+        return False
+    return True
+
+
+def verify_product_name(request):
+    product_name = request.data["product_name"]
+    product_id = request.data["product_id"]
+    queryset = Product.objects.exclude(product_id=product_id).filter(product_name=product_name)
     if queryset.exists():
         return False
     return True

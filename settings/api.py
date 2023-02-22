@@ -6,7 +6,9 @@ from settings.models import Company, Branch, BranchAssignment
 from settings.serializers import (
     CompanySerializer,
     BranchesListSerializer,
+    BranchInfoSerializer,
     BranchAssignmentsSerializer,
+    CreateBranchSerializer,
     ShopBranchSerializer,
     ShopDeliveryAreaSerializer,
 )
@@ -36,6 +38,17 @@ class BranchListViewSet(ModelViewSet):
         return Branch.objects.all()
 
 
+class BranchInfoViewSet(ModelViewSet):
+    queryset = Branch.objects.all()
+    serializer_class = BranchInfoSerializer
+    permission_classes = []
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        branch_id = self.request.query_params.get("branch_id", None)
+        return Branch.objects.filter(branch_id=branch_id)
+
+
 class CompanyViewSet(ModelViewSet):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
@@ -44,6 +57,35 @@ class CompanyViewSet(ModelViewSet):
 
     def get_queryset(self):
         return Company.objects.filter(id=1)
+
+
+class CreateBranchView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        request.data["created_by"] = request.user.pk
+        print(request.data)
+        serializer = CreateBranchSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"detail": "Branch created."}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                data={"detail": "Unable to create Branch."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateBranchView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        branch = Branch.objects.get(branch_id=request.data["branch_id"])
+        serializer = CreateBranchSerializer(branch, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={"detail": "Branch created."}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                data={"detail": "Unable to create Branch."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class ShopGetDeliveryAreaAmountView(views.APIView):

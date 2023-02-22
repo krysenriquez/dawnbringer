@@ -34,8 +34,6 @@ class PageContentsSerializer(ModelSerializer):
 
 
 class PageComponentsSerializer(ModelSerializer):
-    name = serializers.CharField()
-    content = serializers.CharField()
     isPublished = serializers.CharField(source="is_published")
     isDeleted = serializers.CharField(source="is_deleted")
 
@@ -50,13 +48,22 @@ class PageComponentsSerializer(ModelSerializer):
 
 
 class SectionComponentsSerializer(ModelSerializer):
+    subHeader = serializers.CharField(source="sub_header")
+    buttonText = serializers.CharField(source="button_text")
+    buttonLink = serializers.CharField(source="button_link")
+    backgroundImage = serializers.CharField(source="background_image")
+    isPublished = serializers.CharField(source="is_published")
+    isDeleted = serializers.CharField(source="is_deleted")
+
     class Meta:
         model = SectionComponent
         fields = [
             "name",
             "header",
-            "sub_header",
-            "button_text",
-            "button_link",
-            "background_image",
+            "subHeader",
+            "buttonText",
+            "buttonLink",
+            "backgroundImage",
+            "isPublished",
+            "isDeleted",
         ]

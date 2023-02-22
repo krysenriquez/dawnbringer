@@ -142,6 +142,8 @@ class OrderInfoSerializer(ModelSerializer):
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
     current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     order_number = serializers.CharField(source="get_order_number", required=False)
+    code = serializers.CharField(source="promo_code.code", required=False)
+    code_account = serializers.CharField(source="promo_code.account.account_id", required=False)
 
     class Meta:
         model = Order
@@ -155,6 +157,8 @@ class OrderInfoSerializer(ModelSerializer):
             "current_order_status",
             "current_order_stage",
             "order_number",
+            "code",
+            "code_account",
             "order_date",
             "total_amount",
             "total_discount",
