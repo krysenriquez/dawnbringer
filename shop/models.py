@@ -88,6 +88,11 @@ class SectionComponent(models.Model):
         blank=True,
         null=True,
     )
+    promo_text = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
     button_text = models.CharField(
         max_length=255,
         blank=True,

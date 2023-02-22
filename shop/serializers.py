@@ -49,6 +49,7 @@ class PageComponentsSerializer(ModelSerializer):
 
 class SectionComponentsSerializer(ModelSerializer):
     subHeader = serializers.CharField(source="sub_header")
+    promoText = serializers.CharField(source="promo_text")
     buttonText = serializers.CharField(source="button_text")
     buttonLink = serializers.CharField(source="button_link")
     backgroundImage = serializers.ImageField(source="background_image")
@@ -61,6 +62,7 @@ class SectionComponentsSerializer(ModelSerializer):
             "name",
             "header",
             "subHeader",
+            "promoText",
             "buttonText",
             "buttonLink",
             "backgroundImage",

@@ -31,6 +31,7 @@ class WhoAmIView(views.APIView):
     def post(self, request, *args, **kwargs):
         data = {
             "user_id": request.user.user_id,
+            "display_name": request.user.display_name,
             "email_address": request.user.email_address,
             "username": request.user.username,
             "user_type": request.user.user_type,

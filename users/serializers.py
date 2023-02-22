@@ -63,6 +63,14 @@ class UserLogsSerializer(ModelSerializer):
         fields = "__all__"
 
 
+class UsersListSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "username",
+            "email_address",
+        ]
+
 class UserSerializer(ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create(**validated_data)
