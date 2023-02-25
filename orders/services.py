@@ -105,22 +105,30 @@ def process_order_request(request):
 
 
 def process_order_details(details, order_amount, has_valid_code, total_discount):
+    new_details = []
     for detail in details:
+        new_detail = {}
         variant = get_object_or_none(ProductVariant, variant_id=detail["variant"])
         if variant:
-            detail["product_variant"] = variant.pk
-            detail["amount"] = variant.price.base_price
-            detail["discount"] = 0
-            detail["total_amount"] = variant.price.base_price * detail["quantity"]
-            order_amount += detail["total_amount"]
+            print("Variant", variant.pk)
+            new_detail["product_variant"] = variant.pk
+            new_detail["quantity"] = detail["quantity"]
+            new_detail["amount"] = variant.price.base_price
+            new_detail["discount"] = 0
+            new_detail["total_amount"] = variant.price.base_price * detail["quantity"]
+
+            order_amount += new_detail["total_amount"]
+
             if has_valid_code:
-                detail["discount"] = variant.price.discounted_price
-                detail["total_amount"] = variant.price.discounted_price * detail["quantity"]
-                total_discount += (variant.price.base_price * detail["quantity"]) - (
-                    variant.price.discounted_price * detail["quantity"]
+                new_detail["discount"] = variant.price.discounted_price
+                new_detail["total_amount"] = variant.price.discounted_price * new_detail["quantity"]
+                total_discount += (variant.price.base_price * new_detail["quantity"]) - (
+                    variant.price.discounted_price * new_detail["quantity"]
                 )
 
-    return details, order_amount, total_discount
+        new_details.append(new_detail)
+
+    return new_details, order_amount, total_discount
 
 
 def process_fees_details(fees, total_fees, has_valid_code, total_discount):

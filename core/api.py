@@ -39,7 +39,7 @@ class ActivitiesListMemberViewSet(ModelViewSet):
     def get_queryset(self):
         user = User.objects.get(id=self.request.user.pk, is_active=True)
         if user is not None:
-            return Activity.objects.filter(account__user=user).order_by("level")
+            return Activity.objects.filter(account__user=user).order_by("id")
 
 
 class UpdateSettingsView(views.APIView):

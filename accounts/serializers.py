@@ -51,6 +51,7 @@ class AddressInfoSerializer(ModelSerializer):
         instance.province = validated_data.get("province", instance.province)
         instance.country = validated_data.get("country", instance.country)
         instance.address_type = validated_data.get("address_type", instance.address_type)
+        instance.is_default = validated_data.get("is_default", instance.is_default)
         instance.save()
 
         return instance
@@ -58,7 +59,9 @@ class AddressInfoSerializer(ModelSerializer):
     class Meta:
         model = AddressInfo
         fields = [
+            "full_address",
             "id",
+            "label",
             "address1",
             "address2",
             "city",
@@ -66,7 +69,7 @@ class AddressInfoSerializer(ModelSerializer):
             "province",
             "country",
             "address_type",
-            "full_address",
+            "is_default",
         ]
         read_only_fields = ("account",)
 
@@ -279,14 +282,21 @@ class AccountInfoSerializer(ModelSerializer):
         ]
 
 
-class AccountAvatarSerializer(ModelSerializer):
+class AccountMemberSerializer(ModelSerializer):
     code = CodeSerializer(required=False)
+    personal_info = PersonalInfoSerializer(required=False)
+    contact_info = ContactInfoSerializer(required=False)
+    avatar_info = AvatarInfoSerializer(required=False)
+    address_info = AddressInfoSerializer(many=True, required=False)
+    orders = OrdersListSerializer(many=True, required=False)
+    activities = ActivitiesSerializer(many=True, required=False)
     account_avatar = serializers.ImageField(source="avatar_info.file_attachment", required=False)
     account_name = serializers.CharField(source="get_full_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
+    user_status = serializers.CharField(source="user.is_active", required=False)
 
     def to_representation(self, instance):
-        data = super(AccountAvatarSerializer, self).to_representation(instance)
+        data = super(AccountMemberSerializer, self).to_representation(instance)
         membership_levels = MembershipLevel.objects.all()
         if membership_levels:
             points = []
@@ -298,4 +308,17 @@ class AccountAvatarSerializer(ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ["account_id", "account_name", "account_number", "account_avatar", "code"]
+        fields = [
+            "code",
+            "personal_info",
+            "contact_info",
+            "avatar_info",
+            "address_info",
+            "orders",
+            "activities",
+            "account_avatar",
+            "account_name",
+            "account_number",
+            "user_status",
+            "account_id",
+        ]

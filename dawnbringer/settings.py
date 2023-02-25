@@ -90,7 +90,7 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "20/minute", "user": "10000/day"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "100/minute", "user": "10000/day"},
     "DATE_INPUT_FORMATS": ["iso-8601", "%Y-%m-%dT%H:%M:%S.%fZ"],
 }
 

@@ -151,7 +151,6 @@ class CreateOrderView(views.APIView):
             customer = get_or_create_customer(transformed_request)
             if customer is not None:
                 processed_request["customer"] = customer.pk
-
         if account is not None or customer is not None:
             serializer = CreateOrderSerializer(data=processed_request)
             if serializer.is_valid():

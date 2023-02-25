@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from accounts.enums import AccountStatus
 from accounts.models import Account
 from accounts.serializers import (
-    AccountAvatarSerializer,
+    AccountMemberSerializer,
     CreateAccountSerializer,
     AccountInfoSerializer,
     AccountsListSerializer,
 )
 from accounts.services import (
     activate_account_login,
+    attach_orders_to_registered_account,
     get_registration_link_object,
     verify_code_details,
     verify_registration_link,
@@ -47,7 +48,7 @@ class AccountInfoViewSet(ModelViewSet):
 
 class AccountAvatarViewSet(ModelViewSet):
     queryset = Account.objects.all()
-    serializer_class = AccountAvatarSerializer
+    serializer_class = AccountMemberSerializer
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
 
     def get_queryset(self):
@@ -69,6 +70,7 @@ class RegisterAccountView(views.APIView):
                 new_member = serializer.save()
                 if new_member:
                     activate_account_login(new_member, request.data["user"])
+                    attach_orders_to_registered_account(new_member, registration)
                     update_registration_status(registration)
                     return Response(data={"detail": "Account created."}, status=status.HTTP_201_CREATED)
                 return Response(
