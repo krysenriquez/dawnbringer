@@ -9,7 +9,7 @@ from django.contrib.contenttypes.fields import (
 )
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
-from users.enums import UserType
+from users.enums import UserType, ActionType
 
 
 class UserManager(BaseUserManager):
@@ -116,7 +116,11 @@ class User(AbstractUser):
 
 class UserLogs(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_logs")
-    action_type = models.CharField(max_length=255, blank=True, null=True)
+    action_type = models.CharField(
+        max_length=10,
+        choices=ActionType.choices,
+        default=ActionType.CREATE,
+    )
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,

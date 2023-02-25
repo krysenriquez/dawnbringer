@@ -1,9 +1,11 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
 from users.api import (
-    UserViewSet,
+    UsersListViewSet,
+    UserInfoViewSet,
     UserLogsViewSet,
     ContentTypeViewSet,
+    UpdateBranchAssignmentsView,
     CheckUsernameView,
     ChangeUsernameAdminView,
     ChangeEmailAddressAdminView,
@@ -17,11 +19,13 @@ from users.api import (
 )
 
 router = DefaultRouter()
-router.register(r"getuser", UserViewSet)
+router.register(r"getusers", UsersListViewSet)
+router.register(r"getuser", UserInfoViewSet)
 router.register(r"userlogs", UserLogsViewSet)
 router.register(r"contenttype", ContentTypeViewSet)
 
 urlpatterns = [
+    path("updatebranchassignments/", UpdateBranchAssignmentsView.as_view()),
     path("checkusername/", CheckUsernameView.as_view()),
     path("checkemailaddress/", CheckEmailAddressView.as_view()),
     path("resetpassword/", ResetPasswordView.as_view()),

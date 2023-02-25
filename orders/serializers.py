@@ -11,6 +11,30 @@ from orders.models import (
 )
 
 # Orders
+class ReferralOrdersListSerializer(ModelSerializer):
+    order_number = serializers.CharField(source="get_order_number", required=False)
+    current_order_status = serializers.CharField(source="get_last_order_status", required=False)
+
+    # def to_representation(self, instance):
+    #     request = self.context["request"]
+    # 
+    #     points = instance.get_membership_level_points()
+    #     data = super(ReferralOrdersListSerializer, self).to_representation(instance)
+    #     data.update({"points": points})
+
+    #     return data
+
+    class Meta:
+        model = Order
+        fields = [
+            "order_id",
+            "order_number",
+            "current_order_status",
+            "total_amount",
+            "order_type",
+        ]
+
+
 class ProductVariantOrderDetailsSerializer(ModelSerializer):
     order_number = serializers.CharField(source="order.get_order_number", required=False)
     order_id = serializers.CharField(source="order.order_id", required=False)

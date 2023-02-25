@@ -97,7 +97,7 @@ class ShopGetDeliveryAreaAmountView(views.APIView):
         country = request.data.get("country")
 
         return Response(
-            data={"amount": int(100)},
+            data={"amount": int(150)},
             status=status.HTTP_200_OK,
         )
 

@@ -1,8 +1,9 @@
-from django.db.models import Prefetch
+from django.db.models.functions import TruncMonth
+from django.db.models import Prefetch, Q, Max, F, Prefetch, Count
 from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from core.services import comp_plan
 from orders.enums import OrderStatus, OrderType
 from orders.models import (
     Order,
@@ -10,6 +11,7 @@ from orders.models import (
     Customer,
 )
 from orders.serializers import (
+    ReferralOrdersListSerializer,
     CreateOrderSerializer,
     CreateOrderHistorySerializer,
     OrdersListSerializer,
@@ -30,6 +32,7 @@ from orders.services import (
 )
 from users.models import User
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
+
 
 # Customer
 class CustomersListViewSet(ModelViewSet):
@@ -115,6 +118,18 @@ class OrderInfoMemberViewSet(ModelViewSet):
             )
 
 
+class ReferralOrdersListMemberViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = ReferralOrdersListSerializer
+    permission_classes = [IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        user = User.objects.get(id=self.request.user.pk, is_active=True)
+        if user is not None:
+            return Order.objects.filter(promo_code__account__user=user).order_by("-id")
+
+
 # Order
 class CreateOrderView(views.APIView):
     permission_classes = []
@@ -177,7 +192,8 @@ class CreateOrderHistoryView(views.APIView):
 
                 if order_history.order_status == OrderStatus.COMPLETED:
                     email_msg = check_for_exclusive_product_variant(order_history)
-
+                    if order_history.order.promo_code:
+                        comp_plan(request, order_history.order)
                 if not email_msg:
                     return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
                 return Response(data={"detail": "Order updated. " + email_msg}, status=status.HTTP_201_CREATED)

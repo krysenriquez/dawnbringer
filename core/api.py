@@ -1,12 +1,13 @@
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from core.models import Setting, MembershipLevel
-from core.serializers import SettingsSerializer, MembershipLevelsSerializer
+from core.models import Setting, MembershipLevel, Activity
+from core.serializers import SettingsSerializer, MembershipLevelsSerializer, ActivitiesSerializer
 from core.services import comp_plan
-from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
-
+from users.models import User
+from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
 from orders.models import Order
+import phgeograpy
 
 
 class SettingsViewSet(ModelViewSet):
@@ -27,6 +28,18 @@ class MembershipLevelsViewSet(ModelViewSet):
 
     def get_queryset(self):
         return MembershipLevel.objects.all().order_by("level")
+
+
+class ActivitiesListMemberViewSet(ModelViewSet):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitiesSerializer
+    permission_classes = [IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        user = User.objects.get(id=self.request.user.pk, is_active=True)
+        if user is not None:
+            return Activity.objects.filter(account__user=user).order_by("level")
 
 
 class UpdateSettingsView(views.APIView):
@@ -81,8 +94,10 @@ class Test(views.APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
-        order = Order.objects.get(id=request.data.get("order"))
-        comp_plan(request, order)
+        # order = Order.objects.get(id=request.data.get("order"))
+        # comp_plan(request, order)
+        regions = phgeograpy.regions(raw=True)
+        print(regions)
         return Response(
             data={"detail": "test"},
             status=status.HTTP_200_OK,

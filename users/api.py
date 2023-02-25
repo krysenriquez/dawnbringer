@@ -1,14 +1,97 @@
 from difflib import SequenceMatcher
+from django.contrib.contenttypes.models import ContentType
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from users.serializers import *
-from users.models import *
+from users.serializers import (
+    UsersListSerializer,
+    UserInfoSerializer,
+    CreateUserSerializer,
+    ContentTypeSerializer,
+    UserLogsSerializer,
+)
+from users.models import User, UserLogs, LogDetails
+from users.services import update_branch_assignments
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
 from vanguard.throttle import ThirtyPerMinuteAnonThrottle
+
+
+class ContentTypeViewSet(ModelViewSet):
+    queryset = ContentType.objects.all()
+    serializer_class = ContentTypeSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = ContentType.objects.all()
+        model = self.request.query_params.get("model", None)
+
+        if model is not None:
+            queryset = queryset.filter(model=model)
+
+        return queryset
+
+
+class UsersListViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UsersListSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return User.objects.exclude(is_active=False)
+
+
+class UserInfoViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserInfoSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get("user_id", None)
+        return User.objects.exclude(is_active=False).filter(id=self.request.user.pk)
+
+
+class UserLogsViewSet(ModelViewSet):
+    queryset = UserLogs.objects.all()
+    serializer_class = UserLogsSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        queryset = UserLogs.objects.order_by("-id")
+        content_type = self.request.query_params.get("content_type", None)
+        object_id = self.request.query_params.get("object_id", None)
+        user = self.request.query_params.get("user", None)
+
+        if content_type is not None:
+            queryset = queryset.filter(content_type=content_type, object_id=object_id)
+
+        if user is not None:
+            queryset = queryset.filter(user=user)
+
+        return queryset
+
+
+class UpdateBranchAssignmentsView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        try:
+            update_branch_assignments(request)
+            return Response(
+                data={"detail": "Branch User Assignments updated"},
+                status=status.HTTP_200_OK,
+            )
+        except:
+            return Response(
+                data={"detail": "Unable to update Branch User Assignments"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CheckUsernameView(views.APIView):
@@ -73,7 +156,7 @@ class ChangeUsernameAdminView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             data = {"username": new_username, "can_change_username": False}
-            serializer = UserSerializer(member_user, data=data, partial=True)
+            serializer = CreateUserSerializer(member_user, data=data, partial=True)
 
             if serializer.is_valid():
                 serializer.save()
@@ -112,7 +195,7 @@ class ChangeEmailAddressAdminView(views.APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 data = {"email_address": email_address, "can_change_email_address": False}
-                serializer = UserSerializer(member_user, data=data, partial=True)
+                serializer = CreateUserSerializer(member_user, data=data, partial=True)
 
                 if serializer.is_valid():
                     serializer.save()
@@ -177,7 +260,7 @@ class ChangeUsernameView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             data = {"username": new_username, "can_change_username": False}
-            serializer = UserSerializer(logged_user, data=data, partial=True)
+            serializer = CreateUserSerializer(logged_user, data=data, partial=True)
             if serializer.is_valid():
                 print(serializer)
                 serializer.save()
@@ -214,7 +297,7 @@ class ChangeEmailAddressView(views.APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 data = {"email_address": email_address, "can_change_email_address": False}
-                serializer = UserSerializer(logged_user, data=data, partial=True)
+                serializer = CreateUserSerializer(logged_user, data=data, partial=True)
                 if serializer.is_valid():
                     serializer.save()
                     return Response(
@@ -294,54 +377,3 @@ class PasswordValidation(views.APIView):
                 data={"detail": "The password is too similar to the email.", "similar": True},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
-
-class UserViewSet(ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = User.objects.exclude(is_active=False)
-        if self.request.user.is_authenticated:
-            queryset = queryset.filter(id=self.request.user.pk).exclude(is_active=False)
-
-            return queryset
-
-
-class UserLogsViewSet(ModelViewSet):
-    queryset = UserLogs.objects.all()
-    serializer_class = UserLogsSerializer
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = UserLogs.objects.order_by("-id")
-        content_type = self.request.query_params.get("content_type", None)
-        object_id = self.request.query_params.get("object_id", None)
-        user = self.request.query_params.get("user", None)
-
-        if content_type is not None:
-            queryset = queryset.filter(content_type=content_type, object_id=object_id)
-
-        if user is not None:
-            queryset = queryset.filter(user=user)
-
-        return queryset
-
-
-class ContentTypeViewSet(ModelViewSet):
-    queryset = ContentType.objects.all()
-    serializer_class = ContentTypeSerializer
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
-    http_method_names = ["get"]
-
-    def get_queryset(self):
-        queryset = ContentType.objects.all()
-        model = self.request.query_params.get("model", None)
-
-        if model is not None:
-            queryset = queryset.filter(model=model)
-
-        return queryset

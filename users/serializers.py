@@ -1,7 +1,9 @@
+from django.contrib.contenttypes.models import ContentType
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from users.models import *
+from settings.models import BranchAssignment, Branch
+from users.models import User, UserLogs, LogDetails
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -37,6 +39,32 @@ class ContentTypeSerializer(ModelSerializer):
         fields = "__all__"
 
 
+class UserBranchesListSerializer(ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.username", required=False)
+
+    class Meta:
+        model = Branch
+        fields = [
+            "branch_id",
+            "branch_name",
+            "is_main",
+            "can_deliver",
+            "can_supply",
+            "is_active",
+            "created_by_name",
+        ]
+
+
+class UserBranchAssignmentsSerializer(ModelSerializer):
+    branch = UserBranchesListSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = BranchAssignment
+        fields = [
+            "branch",
+        ]
+
+
 class UserLogsDetailsSerializer(ModelSerializer):
     class Meta:
         model = LogDetails
@@ -66,12 +94,18 @@ class UserLogsSerializer(ModelSerializer):
 class UsersListSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = [
-            "username",
-            "email_address",
-        ]
+        fields = ["user_id", "username", "email_address", "display_name", "user_type", "is_active"]
 
-class UserSerializer(ModelSerializer):
+
+class UserInfoSerializer(ModelSerializer):
+    branch_assignment = UserBranchAssignmentsSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ["branch_assignment", "user_id", "username", "email_address", "display_name", "user_type", "is_active"]
+
+
+class CreateUserSerializer(ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create(**validated_data)
         user.set_password(validated_data["password"])

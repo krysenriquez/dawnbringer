@@ -109,15 +109,15 @@ def process_order_details(details, order_amount, has_valid_code, total_discount)
         variant = get_object_or_none(ProductVariant, variant_id=detail["variant"])
         if variant:
             detail["product_variant"] = variant.pk
-            detail["amount"] = variant.price.price
+            detail["amount"] = variant.price.base_price
             detail["discount"] = 0
-            detail["total_amount"] = variant.price.price * detail["quantity"]
+            detail["total_amount"] = variant.price.base_price * detail["quantity"]
             order_amount += detail["total_amount"]
             if has_valid_code:
-                detail["discount"] = variant.price.discount
-                detail["total_amount"] = variant.price.discount * detail["quantity"]
-                total_discount += (variant.price.price * detail["quantity"]) - (
-                    variant.price.discount * detail["quantity"]
+                detail["discount"] = variant.price.discounted_price
+                detail["total_amount"] = variant.price.discounted_price * detail["quantity"]
+                total_discount += (variant.price.base_price * detail["quantity"]) - (
+                    variant.price.discounted_price * detail["quantity"]
                 )
 
     return details, order_amount, total_discount

@@ -129,6 +129,11 @@ class Account(models.Model):
             .aggregate(total=Coalesce(Sum("activity_amount"), 0, output_field=models.DecimalField()))
             .get("total")
         )
+    
+    def get_level_from_code(self, code_owner=None, account=None):
+        
+        
+        pass
 
     def __str__(self):
         return "%s" % (self.get_full_name())

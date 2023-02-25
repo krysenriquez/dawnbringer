@@ -218,7 +218,7 @@ def notify_branch_to_on_supply_update_by_email(supply_history):
 
 def verify_sku(request):
     sku = request.data["sku"]
-    variant_id = request.data["variant_id"]
+    variant_id = request.data.get("variant_id", None)
     queryset = ProductVariant.objects.exclude(variant_id=variant_id).filter(sku=sku)
     if queryset.exists():
         return False

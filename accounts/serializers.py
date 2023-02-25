@@ -108,9 +108,9 @@ class CreateAccountSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
     personal_info = PersonalInfoSerializer(required=False)
     contact_info = ContactInfoSerializer(required=False)
-    address_info = AddressInfoSerializer(required=False)
+    address_info = AddressInfoSerializer(many=True, required=False)
     code = CodeSerializer(required=False)
-    avatar_info = AvatarInfoSerializer(many=True, required=False)
+    avatar_info = AvatarInfoSerializer(required=False)
     referrer_name = serializers.CharField(source="self.referrer.get_fullname", required=False)
 
     def create(self, validated_data):
@@ -280,11 +280,22 @@ class AccountInfoSerializer(ModelSerializer):
 
 
 class AccountAvatarSerializer(ModelSerializer):
+    code = CodeSerializer(required=False)
     account_avatar = serializers.ImageField(source="avatar_info.file_attachment", required=False)
     account_name = serializers.CharField(source="get_full_name", required=False)
     account_number = serializers.CharField(source="get_account_number", required=False)
-    account_code = serializers.CharField(source="code.code", required=False)
+
+    def to_representation(self, instance):
+        data = super(AccountAvatarSerializer, self).to_representation(instance)
+        membership_levels = MembershipLevel.objects.all()
+        if membership_levels:
+            points = []
+            for level in membership_levels:
+                total = instance.get_membership_level_points(membership_level=level)
+                points.append({"membership_level": level.name, "total_points": total})
+            data.update({"membership_level_points": points})
+        return data
 
     class Meta:
         model = Account
-        fields = ["account_id", "account_name", "account_number", "account_avatar", "account_code"]
+        fields = ["account_id", "account_name", "account_number", "account_avatar", "code"]

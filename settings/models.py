@@ -130,6 +130,9 @@ class BranchAssignment(models.Model):
         null=True,
     )
 
+    def __str__(self):
+        return "%s - %s" % (self.user, self.branch)
+
 
 class DeliveryArea(models.Model):
     branch = models.ForeignKey(

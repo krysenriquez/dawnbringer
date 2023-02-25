@@ -7,3 +7,9 @@ class UserType(models.TextChoices):
     STAFF = "STAFF", _("Staff")
     ADMIN = "ADMIN", _("Admin")
     MEMBER = "MEMBER", _("Member")
+
+class ActionType(models.TextChoices):
+    CREATE = "CREATE", _("Create")
+    RETRIEVE = "RETRIEVE", _("Retrieve")
+    UPDATE = "UPDATE", _("Update")
+    DELETE = "DELETE", _("Delete")

@@ -108,6 +108,9 @@ class Order(models.Model):
         except:
             return None
 
+    def get_membership_level_points(self):
+        return self.promo_code.account.get_four_level_referrers()
+
 
 class OrderDetail(models.Model):
     order = models.ForeignKey(

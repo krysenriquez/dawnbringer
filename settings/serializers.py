@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from settings.models import Branch, BranchAssignment, Company, DeliveryArea
+from users.models import User
+from users.serializers import UsersListSerializer
 
 
 class CompanySerializer(ModelSerializer):
@@ -15,6 +17,7 @@ class BranchesListSerializer(ModelSerializer):
     class Meta:
         model = Branch
         fields = [
+            "id",
             "branch_id",
             "branch_name",
             "is_main",
@@ -27,10 +30,16 @@ class BranchesListSerializer(ModelSerializer):
 
 class BranchInfoSerializer(ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.username", required=False)
+    users = serializers.SerializerMethodField(source="get_users")
+
+    def get_users(obj, branch):
+        qs = User.objects.filter(branch_assignment__branch=branch)
+        return UsersListSerializer(qs, many=True).data
 
     class Meta:
         model = Branch
         fields = [
+            "users",
             "id",
             "branch_id",
             "branch_name",
@@ -98,7 +107,7 @@ class CreateBranchSerializer(ModelSerializer):
 
 
 class BranchAssignmentsSerializer(ModelSerializer):
-    branch = BranchInfoSerializer(read_only=True, many=True)
+    branch = BranchesListSerializer(read_only=True, many=True)
 
     class Meta:
         model = BranchAssignment
