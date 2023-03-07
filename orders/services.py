@@ -100,7 +100,7 @@ def process_order_request(request):
     data["total_amount"] = (decimal.Decimal(order_amount) + decimal.Decimal(total_fees)) - decimal.Decimal(
         total_discount
     )
-
+    # print(data)
     return data
 
 
@@ -110,7 +110,6 @@ def process_order_details(details, order_amount, has_valid_code, total_discount)
         new_detail = {}
         variant = get_object_or_none(ProductVariant, variant_id=detail["variant"])
         if variant:
-            print("Variant", variant.pk)
             new_detail["product_variant"] = variant.pk
             new_detail["quantity"] = detail["quantity"]
             new_detail["amount"] = variant.price.base_price

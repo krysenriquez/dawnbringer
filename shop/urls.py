@@ -3,8 +3,6 @@ from django.urls import path
 from accounts.api import VerifyCodeView
 from shop.api import (
     ShopPageContentsViewSet,
-    ShopPageComponentsViewSet,
-    ShopSectionComponentsViewSet,
     PageContentsListViewSet,
     PageContentsInfoViewSet,
     PageComponentsListViewSet,
@@ -37,8 +35,6 @@ router.register(r"shop/getsectioncomponents", SectionComponentsListViewSet)
 router.register(r"shop/getsectioncomponent", SectionComponentsInfoViewSet)
 # Front End
 router.register(r"v1/shop/getpagecontents", ShopPageContentsViewSet)
-router.register(r"v1/shop/getpagecomponents", ShopPageComponentsViewSet)
-router.register(r"v1/shop/getsectioncomponents", ShopSectionComponentsViewSet)
 # Array Object
 router.register(r"v1/shop/getproducttypes", ShopProductTypesListViewSet)
 router.register(r"v1/shop/getproducts", ShopProductsListViewSet)

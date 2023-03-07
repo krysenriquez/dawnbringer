@@ -21,11 +21,6 @@ class PageContent(models.Model):
         blank=True,
         null=True,
     )
-    page_content = models.TextField(
-        max_length=255,
-        blank=True,
-        null=True,
-    )
     is_home = models.BooleanField(default=False)
     meta_description = models.CharField(
         max_length=255,
@@ -55,12 +50,14 @@ class PageContent(models.Model):
 
 
 class PageComponent(models.Model):
-    name = models.CharField(
-        max_length=255,
+    page_content = models.ForeignKey(
+        PageContent,
+        related_name="page_component",
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
     )
-    content = models.TextField(
+    name = models.CharField(
         max_length=255,
         blank=True,
         null=True,
@@ -73,17 +70,39 @@ class PageComponent(models.Model):
 
 
 class SectionComponent(models.Model):
+    page_component = models.ForeignKey(
+        PageComponent,
+        related_name="section_component",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     name = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    header = models.CharField(
+    title = models.CharField(
         max_length=255,
         blank=True,
         null=True,
     )
-    sub_header = models.CharField(
+    sub_title = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    description_1 = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    description_2 = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    description_3 = models.CharField(
         max_length=255,
         blank=True,
         null=True,
@@ -103,7 +122,7 @@ class SectionComponent(models.Model):
         blank=True,
         null=True,
     )
-    background_image = models.ImageField(blank=True, upload_to=component_attachments_directory)
+    image = models.ImageField(blank=True, upload_to=component_attachments_directory)
     is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 

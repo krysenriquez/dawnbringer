@@ -87,26 +87,5 @@ class ShopPageContentsViewSet(ModelViewSet):
     throttle_classes = [DevTestingAnonThrottle]
 
     def get_queryset(self):
-        return PageContent.objects.exclude(is_deleted=True).filter(is_published=True)
-
-
-class ShopPageComponentsViewSet(ModelViewSet):
-    queryset = PageComponent.objects.all()
-    serializer_class = ShopPageComponentsSerializer
-    permission_classes = []
-    http_method_names = ["get"]
-    throttle_classes = [DevTestingAnonThrottle]
-
-    def get_queryset(self):
-        return PageComponent.objects.exclude(is_deleted=True).filter(is_published=True)
-
-
-class ShopSectionComponentsViewSet(ModelViewSet):
-    queryset = SectionComponent.objects.all()
-    serializer_class = ShopSectionComponentsSerializer
-    permission_classes = []
-    http_method_names = ["get"]
-    throttle_classes = [DevTestingAnonThrottle]
-
-    def get_queryset(self):
-        return SectionComponent.objects.exclude(is_deleted=True).filter(is_published=True)
+        page_slug = self.request.query_params.get("page_slug", None)
+        return PageContent.objects.exclude(is_deleted=True).filter(page_slug=page_slug)
