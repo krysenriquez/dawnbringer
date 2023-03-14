@@ -1,5 +1,8 @@
+import logging
 from users.models import User
 from settings.models import Branch, BranchAssignment
+
+logger = logging.getLogger(__name__)
 
 
 def create_new_user(request):
@@ -26,6 +29,8 @@ def update_branch_assignments(request):
     for branch in assignment.branch.all():
         if branch.id not in added_branches:
             assignment.branch.remove(branch)
+
+    logger.info("Branch Assignments Updated: " + assignment.branch)
 
 
 def create_user_logs(request):

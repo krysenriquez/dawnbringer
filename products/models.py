@@ -3,6 +3,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Sum, Max, F, Prefetch
 from django.db.models.functions import Coalesce
+from simple_history.models import HistoricalRecords
 from orders.enums import OrderStatus
 from orders.models import OrderDetail
 from products.enums import Status, SupplyStatus
@@ -40,16 +41,34 @@ class ProductType(models.Model):
         null=True,
     )
     product_type_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
         related_name="created_product_type",
         null=True,
+        blank=True,
     )
-    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_type",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def get_product_type_name(self):
         return self.product_type
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s" % (self.product_type)
@@ -74,6 +93,22 @@ class ProductTypeMeta(models.Model):
         blank=True,
         null=True,
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_type_meta",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s" % (self.product_type)
@@ -105,21 +140,35 @@ class Product(models.Model):
         null=True,
     )
     product_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
+    is_deleted = models.BooleanField(
+        default=False,
+    )
+    created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
         related_name="created_product",
         null=True,
     )
-    created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    is_deleted = models.BooleanField(
-        default=False,
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product",
+        null=True,
     )
-    deleted = models.DateTimeField(blank=True, null=True)
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ["-product_id"]
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def get_all_product_variants_count(self):
         return self.product_variants.all().count()
@@ -145,6 +194,22 @@ class ProductMeta(models.Model):
         blank=True,
         null=True,
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_meta",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s" % (self.product)
@@ -167,23 +232,37 @@ class ProductVariant(models.Model):
         null=True,
     )
     variant_tags = ArrayField(models.CharField(max_length=255, blank=True, null=True), blank=True, null=True)
+    variant_status = models.CharField(
+        max_length=11,
+        choices=Status.choices,
+        default=Status.DRAFT,
+    )
+    is_deleted = models.BooleanField(
+        default=False,
+    )
+    created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
         related_name="created_product_variant",
         null=True,
     )
-    created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
-    is_deleted = models.BooleanField(
-        default=False,
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_variant",
+        null=True,
     )
-    variant_status = models.CharField(
-        max_length=11,
-        choices=Status.choices,
-        default=Status.DRAFT,
-    )
-    deleted = models.DateTimeField(blank=True, null=True)
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def get_variant_name(self):
         return self.variant_name
@@ -278,6 +357,22 @@ class Price(models.Model):
     discounted_price = models.DecimalField(
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_variant_price",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s - %s" % (self.variant, self.discounted_price)
@@ -297,6 +392,22 @@ class PointValue(models.Model):
         null=True,
     )
     point_value = models.DecimalField(default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True)
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_variant_point_value",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s - %s : %s" % (self.variant, self.membership_level, self.point_value)
@@ -321,6 +432,22 @@ class ProductVariantMeta(models.Model):
         blank=True,
         null=True,
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_product_variant_meta",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
 
 # Supply
@@ -357,13 +484,29 @@ class Supply(models.Model):
         null=True,
         blank=True,
     )
+    created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
         related_name="created_supply",
         null=True,
     )
-    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_supply",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def get_supply_number(self):
         return str(self.id).zfill(5)
@@ -423,6 +566,22 @@ class SupplyDetail(models.Model):
         default=0,
         blank=True,
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_supply_detail",
+        null=True,
+    )
+    history = HistoricalRecords()
+
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def __str__(self):
         return "%s : %s - %s" % (self.supply, self.variant, self.quantity)
@@ -454,9 +613,22 @@ class SupplyHistory(models.Model):
     created_by = models.ForeignKey(
         "users.User", on_delete=models.SET_NULL, related_name="created_supply_history", null=True, blank=True
     )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_supply_history",
+        null=True,
+    )
+    history = HistoricalRecords()
 
-    def __str__(self):
-        return "%s - %s" % (self.supply, self.supply_status)
+    @property
+    def _history_user(self):
+        return self.modified_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.modified_by = value
 
     def get_supply_status_stage(self):
         match self.supply_status:
@@ -489,3 +661,6 @@ class SupplyHistory(models.Model):
                 return "Supply Request has been delivered"
             case SupplyStatus.DENIED:
                 return "Supply Request has been denied"
+
+    def __str__(self):
+        return "%s - %s" % (self.supply, self.supply_status)

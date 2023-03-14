@@ -19,6 +19,38 @@ from products.models import (
 from settings.serializers import BranchInfoSerializer
 
 
+class HistoricalRecordField(serializers.ListField):
+    def to_representation(self, instance):
+        histories = instance.all()
+        old_record = None
+        historical_data = []
+        for history in histories.iterator():
+            data = {}
+            changes = []
+            if old_record is None:
+                old_record = history
+            else:
+                delta = history.diff_against(old_record)
+                for change in delta.changes:
+                    changes.append("{} changed from {} to {}".format(change.field, change.old, change.new))
+                old_record = history
+
+            data["modified"] = history.modified
+            if history.modified_by:
+                data["modified_by"] = history.modified_by.username
+            else:
+                data["modified_by"] = None
+
+            if len(changes) > 0:
+                data["changes"] = changes
+            else:
+                data["changes"] = None
+
+            historical_data.append(data)
+
+        return super().to_representation(historical_data)
+
+
 # Supplies
 class SupplyHistorySerializer(ModelSerializer):
     supply_stage = serializers.IntegerField(source="get_supply_status_stage", required=False)
@@ -92,6 +124,7 @@ class SupplyInfoSerializer(ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.username", required=False)
     branch_from = BranchInfoSerializer()
     branch_to = BranchInfoSerializer()
+    history = HistoricalRecordField(read_only=True)
 
     def to_representation(self, instance):
         request = self.context["request"]
@@ -125,6 +158,7 @@ class SupplyInfoSerializer(ModelSerializer):
             "created_by_name",
             "branch_from",
             "branch_to",
+            "history",
         ]
 
 
@@ -207,6 +241,7 @@ class ProductVariantSupplyDetailsSerializer(ModelSerializer):
 class PointValuesSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
     membership_level_label = serializers.CharField(source="membership_level.name", required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = PointValue
@@ -216,6 +251,7 @@ class PointValuesSerializer(ModelSerializer):
 
 class ProductVariantMetaSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = ProductVariantMeta
@@ -234,6 +270,7 @@ class ProductMediasSerializer(ModelSerializer):
 
 class PricesSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = Price
@@ -290,6 +327,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
     price = PricesSerializer()
     product_name = serializers.CharField(source="product.product_name", required=False)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
+    history = HistoricalRecordField(read_only=True)
 
     def to_representation(self, instance):
         request = self.context["request"]
@@ -321,6 +359,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
             "variant_tags",
             "created",
             "modified",
+            "history",
         ]
 
 
@@ -399,6 +438,7 @@ class CreateProductVariantsSerializer(ModelSerializer):
 # Product
 class ProductMetaSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = ProductMeta
@@ -439,6 +479,7 @@ class ProductInfoSerializer(ModelSerializer):
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
     enabled_variant_name = serializers.CharField(source="enabled_variant.variant_name", required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = Product
@@ -458,6 +499,7 @@ class ProductInfoSerializer(ModelSerializer):
             "product_status",
             "created",
             "modified",
+            "history",
         ]
 
 
@@ -482,6 +524,7 @@ class CreateProductSerializer(ModelSerializer):
         instance.product_description = validated_data.get("product_description", instance.product_description)
         instance.product_tags = validated_data.get("product_tags", instance.product_tags)
         instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.modified_by = self.context.get("request").user
         instance.save()
 
         if meta:
@@ -491,6 +534,7 @@ class CreateProductSerializer(ModelSerializer):
                     e.meta_tag_title = validated_data.get("meta_tag_title", meta["meta_tag_title"])
                     e.meta_tag_description = validated_data.get("meta_tag_description", meta["meta_tag_description"])
                     e.page_slug = validated_data.get("page_slug", meta["page_slug"])
+                    e.modified_by = self.context.get("request").user
                     e.save()
             else:
                 e = ProductMeta.objects.create(**meta, account=instance)
@@ -505,6 +549,7 @@ class CreateProductSerializer(ModelSerializer):
 # Product Type
 class ProductTypeMetaSerializer(ModelSerializer):
     id = serializers.IntegerField(required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = ProductTypeMeta
@@ -540,6 +585,8 @@ class ProductTypeInfoSerializer(ModelSerializer):
     meta = ProductTypeMetaSerializer(required=False)
     products = ProductsListSerializer(many=True, required=False)
     created_by_name = serializers.CharField(source="created_by.username", required=False)
+    modified_by_name = serializers.CharField(source="modified_by.username", required=False)
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = ProductType
@@ -552,7 +599,11 @@ class ProductTypeInfoSerializer(ModelSerializer):
             "product_type_status",
             "product_type_tags",
             "product_type_description",
+            "created",
             "created_by_name",
+            "modified",
+            "modified_by_name",
+            "history",
         ]
 
 
@@ -569,7 +620,6 @@ class CreateProductTypeSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):
         meta = validated_data.get("meta")
-        print(meta)
         instance.product_type = validated_data.get("product_type", instance.product_type)
         instance.product_type_image = validated_data.get("product_type_image", instance.product_type_image)
         instance.product_type_status = validated_data.get("product_type_status", instance.product_type_status)
@@ -577,6 +627,7 @@ class CreateProductTypeSerializer(ModelSerializer):
             "product_type_description", instance.product_type_description
         )
         instance.product_type_tags = validated_data.get("product_type_tags", instance.product_type_tags)
+        instance.modified_by = self.context.get("request").user
         instance.save()
 
         if meta:
@@ -586,6 +637,7 @@ class CreateProductTypeSerializer(ModelSerializer):
                     e.meta_tag_title = validated_data.get("meta_tag_title", meta["meta_tag_title"])
                     e.meta_tag_description = validated_data.get("meta_tag_description", meta["meta_tag_description"])
                     e.page_slug = validated_data.get("page_slug", meta["page_slug"])
+                    e.modified_by = self.context.get("request").user
                     e.save()
             else:
                 e = ProductTypeMeta.objects.create(**meta, product_type=instance)
@@ -637,6 +689,7 @@ class ShopProductsVariantsListSerializer(ModelSerializer):
 # Child of ShopProductList
 class ShopProductsVariantsSerializer(ModelSerializer):
     product_type = serializers.CharField(source="product.product_type.product_type", required=False)
+    product_type_slug = serializers.CharField(source="product.product_type.meta.page_slug", required=False)
     price = serializers.DecimalField(source="price.base_price", decimal_places=2, max_digits=13)
     discount = serializers.DecimalField(source="price.discounted_price", decimal_places=2, max_digits=13)
     media = ProductMediasSerializer(many=True, required=False)
@@ -658,6 +711,7 @@ class ShopProductsVariantsSerializer(ModelSerializer):
         model = ProductVariant
         fields = [
             "product_type",
+            "product_type_slug",
             "variant_id",
             "variant_name",
             "variant_description",

@@ -4,7 +4,16 @@ from core.enums import Settings
 from core.services import get_setting
 from emails.services import construct_and_send_email_payload, get_email_template, render_template
 from products.enums import SupplyStatus
-from products.models import Product, ProductMedia, ProductVariant, Supply
+from products.models import (
+    Product,
+    ProductMedia,
+    ProductMeta,
+    ProductType,
+    ProductTypeMeta,
+    ProductVariant,
+    ProductVariantMeta,
+    Supply,
+)
 from settings.models import Branch
 
 
@@ -155,18 +164,18 @@ def create_supply_status_filter(branch_id, supply_id, supply_status):
 
 def process_supply_request(request):
     data = {
-        "branch_from": request["branch_from"],
-        "branch_to": request["branch_to"],
-        "tracking_number": request["tracking_number"],
-        "carrier": request["carrier"],
-        "reference_number": request["reference_number"],
-        "comment": request["comment"],
+        "branch_from": request.get("branch_from", None),
+        "branch_to": request.get("branch_to", None),
+        "tracking_number": request.get("tracking_number", None),
+        "carrier": request.get("carrier", None),
+        "reference_number": request.get("reference_number", None),
+        "comment": request.get("comment", None),
     }
 
-    if request["details"]:
+    if request.get("details"):
         details = []
         for detail in request["details"]:
-            details.append({"variant": detail["variant"], "quantity": detail["quantity"]})
+            details.append({"variant": detail.get("variant", None), "quantity": detail.get("quantity", 0)})
         data["details"] = details
 
     return data
@@ -216,19 +225,59 @@ def notify_branch_to_on_supply_update_by_email(supply_history):
     return None
 
 
-def verify_sku(request):
-    sku = request.data["sku"]
-    variant_id = request.data.get("variant_id", None)
-    queryset = ProductVariant.objects.exclude(variant_id=variant_id).filter(sku=sku)
+def verify_product_type_name(request):
+    product_type = request.data.get("product_type", None)
+    product_type_id = request.data.get("product_type_id", None)
+    queryset = ProductType.objects.exclude(product_type_id=product_type_id).filter(product_type__iexact=product_type)
+    print
+    if queryset.exists():
+        return False
+    return True
+
+
+def verify_product_type_slug(request):
+    page_slug = request.data.get("page_slug", None)
+    product_type_id = request.data.get("product_type_id", None)
+    queryset = ProductTypeMeta.objects.exclude(product_type__product_type_id=product_type_id).filter(
+        page_slug=page_slug
+    )
+    print
     if queryset.exists():
         return False
     return True
 
 
 def verify_product_name(request):
-    product_name = request.data["product_name"]
-    product_id = request.data["product_id"]
-    queryset = Product.objects.exclude(product_id=product_id).filter(product_name=product_name)
+    product_name = request.data.get("product_name", None)
+    product_id = request.data.get("product_id", None)
+    queryset = Product.objects.exclude(product_id=product_id).filter(product_name__iexact=product_name)
+    if queryset.exists():
+        return False
+    return True
+
+
+def verify_product_slug(request):
+    page_slug = request.data.get("page_slug", None)
+    product_id = request.data.get("product_id", None)
+    queryset = ProductMeta.objects.exclude(product__product_id=product_id).filter(page_slug=page_slug)
+    if queryset.exists():
+        return False
+    return True
+
+
+def verify_product_variant_sku(request):
+    sku = request.data.get("sku", None)
+    variant_id = request.data.get("variant_id", None)
+    queryset = ProductVariant.objects.exclude(variant_id=variant_id).filter(sku__iexact=sku)
+    if queryset.exists():
+        return False
+    return True
+
+
+def verify_product_variant_slug(request):
+    page_slug = request.data.get("page_slug", None)
+    variant_id = request.data.get("variant_id", None)
+    queryset = ProductVariantMeta.objects.exclude(variant__variant_id=variant_id).filter(page_slug=page_slug)
     if queryset.exists():
         return False
     return True

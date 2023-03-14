@@ -12,8 +12,6 @@ from products.models import (
     ProductType,
     Product,
     ProductVariant,
-    ProductMedia,
-    ProductVariantMeta,
     Supply,
     SupplyDetail,
     SupplyHistory,
@@ -50,7 +48,11 @@ from products.services import (
     transform_form_data_to_json,
     transform_variant_form_data_to_json,
     verify_product_name,
-    verify_sku,
+    verify_product_slug,
+    verify_product_type_name,
+    verify_product_type_slug,
+    verify_product_variant_sku,
+    verify_product_variant_slug,
 )
 from settings.models import Branch
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
@@ -222,6 +224,40 @@ class SuppliesInfoViewSet(ModelViewSet):
 
 
 # POST Views
+class VerifyProductTypeView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_product_type_name(request)
+        if is_verified:
+            return Response(
+                data={"message": "Product Type Name Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Product Type Name Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
+class VerifyProductTypeSlugView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_product_type_slug(request)
+        if is_verified:
+            return Response(
+                data={"message": "Product Type Slug Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Product Type Slug Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
 class VerifyProductView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
@@ -239,11 +275,28 @@ class VerifyProductView(views.APIView):
             )
 
 
-class VerifySkuView(views.APIView):
+class VerifyProductSlugView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        is_verified = verify_sku(request)
+        is_verified = verify_product_slug(request)
+        if is_verified:
+            return Response(
+                data={"message": "Product Slug Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Product Slug Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
+class VerifyProductVariantSkuView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_product_variant_sku(request)
         if is_verified:
             return Response(
                 data={"message": "SKU Available"},
@@ -256,6 +309,23 @@ class VerifySkuView(views.APIView):
             )
 
 
+class VerifyProductVariantSlugView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        is_verified = verify_product_variant_slug(request)
+        if is_verified:
+            return Response(
+                data={"message": "Product Variant Slug Available"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Product Variant Slug Unavailable"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
 class CreateProductTypeView(views.APIView):
     parser_classes = (MultiPartParser,)
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
@@ -263,6 +333,7 @@ class CreateProductTypeView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         processed_request["created_by"] = request.user.pk
+        processed_request["modified_by"] = request.user.pk
         serializer = CreateProductTypeSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
@@ -282,8 +353,9 @@ class UpdateProductTypeView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         product_type = ProductType.objects.get(product_type_id=processed_request["product_type_id"])
-        print(processed_request["meta"])
-        serializer = CreateProductTypeSerializer(product_type, data=processed_request, partial=True)
+        serializer = CreateProductTypeSerializer(
+            product_type, data=processed_request, partial=True, context={"request": request}
+        )
         if serializer.is_valid():
             updated_product_type = serializer.save()
             if updated_product_type:
@@ -304,9 +376,10 @@ class CreateProductView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        process_request = transform_form_data_to_json(request.data)
-        process_request["created_by"] = request.user.pk
-        serializer = CreateProductSerializer(data=process_request)
+        processed_request = transform_form_data_to_json(request.data)
+        processed_request["created_by"] = request.user.pk
+        processed_request["modified_by"] = request.user.pk
+        serializer = CreateProductSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Product created."}, status=status.HTTP_201_CREATED)
@@ -325,7 +398,9 @@ class UpdateProductView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         product = Product.objects.get(product_id=processed_request["product_id"])
-        serializer = CreateProductSerializer(product, data=processed_request, partial=True)
+        serializer = CreateProductSerializer(
+            product, data=processed_request, partial=True, context={"request": request}
+        )
         if serializer.is_valid():
             updated_product = serializer.save()
             if updated_product:
@@ -345,11 +420,12 @@ class CreateProductVariantView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        process_request = transform_variant_form_data_to_json(request.data)
-        process_request["created_by"] = request.user.pk
-        process_request["supplies"] = create_variant_initial_supply(process_request, request)
+        processed_request = transform_variant_form_data_to_json(request.data)
+        processed_request["created_by"] = request.user.pk
+        processed_request["modified_by"] = request.user.pk
+        processed_request["supplies"] = create_variant_initial_supply(processed_request, request)
 
-        serializer = CreateProductVariantsSerializer(data=process_request)
+        serializer = CreateProductVariantsSerializer(data=processed_request)
         if serializer.is_valid():
             variant = serializer.save()
             has_failed_upload = process_media(variant, request.data)
@@ -373,7 +449,9 @@ class UpdateProductVariantView(views.APIView):
         processed_request = transform_variant_form_data_to_json(request.data)
         product_variant = ProductVariant.objects.get(variant_id=processed_request["variant_id"])
 
-        serializer = CreateProductVariantsSerializer(product_variant, data=processed_request, partial=True)
+        serializer = CreateProductVariantsSerializer(
+            product_variant, data=processed_request, partial=True, context={"request": request}
+        )
         if serializer.is_valid():
             variant = serializer.save()
             has_failed_upload = process_media(variant, request.data)
@@ -396,6 +474,7 @@ class CreateSupplyView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = process_supply_request(request.data)
         processed_request["created_by"] = request.user.pk
+        processed_request["modified_by"] = request.user.pk
         processed_request["histories"] = create_supply_initial_history(request.data)
         serializer = SupplyCreateSerializer(data=processed_request)
         if serializer.is_valid():
@@ -414,7 +493,7 @@ class UpdateSupplyView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         supply = Supply.objects.get(supply_id=request.data["supply_id"])
-        serializer = SupplyCreateSerializer(supply, data=request.data, partial=True)
+        serializer = SupplyCreateSerializer(supply, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Supply Request updated."}, status=status.HTTP_201_CREATED)

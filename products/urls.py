@@ -11,8 +11,12 @@ from products.api import (
     ProductVariantInfoViewSet,
     SuppliesListViewSet,
     SuppliesInfoViewSet,
+    VerifyProductTypeView,
+    VerifyProductTypeSlugView,
     VerifyProductView,
-    VerifySkuView,
+    VerifyProductSlugView,
+    VerifyProductVariantSkuView,
+    VerifyProductVariantSlugView,
     CreateProductTypeView,
     UpdateProductTypeView,
     CreateProductView,
@@ -41,8 +45,12 @@ router.register(r"getsupply", SuppliesInfoViewSet)
 # Frontend
 
 urlpatterns = [
+    path("verifyproducttypename/", VerifyProductTypeView.as_view()),
+    path("verifyproducttypeslug/", VerifyProductTypeSlugView.as_view()),
     path("verifyproductname/", VerifyProductView.as_view()),
-    path("verifysku/", VerifySkuView.as_view()),
+    path("verifyproductslug/", VerifyProductSlugView.as_view()),
+    path("verifyproductvariantsku/", VerifyProductVariantSkuView.as_view()),
+    path("verifyproductvariantslug/", VerifyProductVariantSlugView.as_view()),
     path("createproducttype/", CreateProductTypeView.as_view()),
     path("updateproducttype/", UpdateProductTypeView.as_view()),
     path("createproduct/", CreateProductView.as_view()),

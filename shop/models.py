@@ -44,6 +44,7 @@ class PageContent(models.Model):
     )
     is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return "%s - %s : %s" % (self.internal_name, self.page_title, self.is_published)
@@ -64,6 +65,7 @@ class PageComponent(models.Model):
     )
     is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return "%s : %s" % (self.name, self.is_published)
@@ -92,18 +94,15 @@ class SectionComponent(models.Model):
         blank=True,
         null=True,
     )
-    description_1 = models.CharField(
-        max_length=255,
+    description_1 = models.TextField(
         blank=True,
         null=True,
     )
-    description_2 = models.CharField(
-        max_length=255,
+    description_2 = models.TextField(
         blank=True,
         null=True,
     )
-    description_3 = models.CharField(
-        max_length=255,
+    description_3 = models.TextField(
         blank=True,
         null=True,
     )
@@ -125,6 +124,7 @@ class SectionComponent(models.Model):
     image = models.ImageField(blank=True, upload_to=component_attachments_directory)
     is_published = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return "%s : %s" % (self.name, self.is_published)

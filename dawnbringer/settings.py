@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "rest_framework_simplejwt.token_blacklist",
+    "simple_history",
     "users",
     "core",
     "settings",
@@ -63,6 +64,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "request_logging.middleware.LoggingMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 ROOT_URLCONF = "dawnbringer.urls"
@@ -124,28 +127,29 @@ SIMPLE_JWT = {
 WSGI_APPLICATION = "dawnbringer.wsgi.application"
 
 # Logger
+LOG_PATH = os.path.join(BASE_DIR, "logs/")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} {message}",
             "style": "{",
-        },
-        "simple": {
-            "format": "{levelname} {message}",
-            "style": "{",
-        },
-    },
-    "filters": {
-        "require_debug_true": {
-            "()": "django.utils.log.RequireDebugTrue",
         },
     },
     "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "filters": ["require_debug_true"],
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
+        "file_debug_django_requests": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": LOG_PATH + "requests.log",
+            "formatter": "verbose",
+        },
+        "file_error_django_requests": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": LOG_PATH + "error_requests.log",
+            "formatter": "verbose",
         },
     },
     "loggers": {
@@ -153,6 +157,11 @@ LOGGING = {
             "handlers": ["console"],
             "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": True,
+        },
+        "django.request": {
+            "handlers": ["file_debug_django_requests", "file_error_django_requests"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }
@@ -238,3 +247,6 @@ MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# Set Max Upload Size to 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880

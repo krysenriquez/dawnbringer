@@ -9,18 +9,31 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, Bl
 from vanguard.serializers import AuthAdminLoginSerializer, AuthLoginSerializer, AuthRefreshSerializer
 from vanguard.permissions import *
 from accounts.models import Account
+from request_logging.decorators import no_logging
 
 
 class AuthAdminLoginView(TokenObtainPairView):
     serializer_class = AuthAdminLoginSerializer
 
+    @no_logging()
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 class AuthLoginView(TokenObtainPairView):
     serializer_class = AuthLoginSerializer
 
+    @no_logging()
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 class AuthShopLoginView(TokenObtainPairView):
     serializer_class = AuthLoginSerializer
+
+    @no_logging()
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
 
 class AuthRefreshView(TokenRefreshView):

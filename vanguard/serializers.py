@@ -76,6 +76,7 @@ class AuthAdminLoginSerializer(TokenObtainPairSerializer, TokenObtainSerializer)
                 self.error_messages["no_active_account"],
                 "no_active_account",
             )
+
         return super().validate(attrs)
 
 

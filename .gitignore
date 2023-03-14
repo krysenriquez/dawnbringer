@@ -3,3 +3,4 @@
 *.pyc
 **/statics/media/*
 **/media/*
+logs/*

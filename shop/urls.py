@@ -1,15 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
 from accounts.api import VerifyCodeView
-from shop.api import (
-    ShopPageContentsViewSet,
-    PageContentsListViewSet,
-    PageContentsInfoViewSet,
-    PageComponentsListViewSet,
-    PageComponentsInfoViewSet,
-    SectionComponentsListViewSet,
-    SectionComponentsInfoViewSet,
-)
+from emails.api import CreateInquiryView
 from orders.api import CreateOrderView, ShopOrdersListViewSet, ShopOrderInfoViewSet, ShopOrderInfoGuestViewSet
 from products.api import (
     ShopProductTypesListViewSet,
@@ -23,6 +15,15 @@ from settings.api import (
     ShopBranchListViewSet,
     ShopBranchInfoViewSet,
     ShopGetDeliveryAreaAmountView,
+)
+from shop.api import (
+    ShopPageContentsViewSet,
+    PageContentsListViewSet,
+    PageContentsInfoViewSet,
+    PageComponentsListViewSet,
+    PageComponentsInfoViewSet,
+    SectionComponentsListViewSet,
+    SectionComponentsInfoViewSet,
 )
 from vanguard.api import AuthShopLoginView, WhoAmIShopView
 
@@ -53,6 +54,7 @@ urlpatterns = [
     path("v1/shop/createorder/", CreateOrderView.as_view()),
     path("v1/shop/verifycode/", VerifyCodeView.as_view()),
     path("v1/shop/getdeliveryamount/", ShopGetDeliveryAreaAmountView.as_view()),
+    path("v1/shop/createinquiry/", CreateInquiryView.as_view()),
     path("v1/shop/login/", AuthShopLoginView.as_view()),
     path("v1/shop/whoami/", WhoAmIShopView.as_view()),
 ]

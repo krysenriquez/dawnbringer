@@ -46,3 +46,21 @@ class EmailAddress(models.Model):
 
     def __str__(self):
         return "%s" % (self.server_host_user)
+
+
+class EmailInquiry(models.Model):
+    subject = models.TextField(
+        blank=True,
+        null=True,
+    )
+    email_address = models.TextField(
+        blank=True,
+        null=True,
+    )
+    message = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return "%s" % (self.subject)

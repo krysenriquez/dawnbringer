@@ -12,7 +12,7 @@ class Settings(models.TextChoices):
     SHOP_CODE_LINK = "SHOP_CODE_LINK", _("Shop Code Link")
     POINT_CONVERSION_RATE = "POINT_CONVERSION_RATE", _("Point Conversion Rate")
     M_WALLET_CASHOUT_DAY = "M_WALLET_CASHOUT_DAY", _("Member Wallet Cashout Day")
-    M_WALLET_CASHOUT_OVERRIDE = "M_WALLET_CASHOUT_OVERRIDE", _("Member Wallet Cashout Day")
+    M_WALLET_CASHOUT_OVERRIDE = "M_WALLET_CASHOUT_OVERRIDE", _("Member Wallet Cashout Override")
     M_WALLET_MINIMUM_CASHOUT_AMOUNT = "M_WALLET_MINIMUM_CASHOUT_AMOUNT", _("Member Wallet Minimum Cashout Amount")
     CASHOUT_PROCESSING_FEE_PERCENTAGE = "CASHOUT_PROCESSING_FEE_PERCENTAGE", _("Cashout Processing Fee Percentage")
 
