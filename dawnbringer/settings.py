@@ -12,27 +12,52 @@ LIVE = True
 if DEBUG and not LIVE:
     ALLOWED_HOSTS = ["*"]
 
+if LIVE:
+    ALLOWED_HOSTS = [
+        "https://member.lereussicakes.com",
+        "https://admin.lereussicakes.com",
+        "https://dawnbringer.lereussicakes.com",
+        "member.lereussicakes.com",
+        "admin.lereussicakes.com",
+        "dawnbringer.lereussicakes.com",
+        "https://139.59.244.242",
+    ]
+
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:3002",
-    "http://127.0.0.1:3002",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3001",
-    "http://localhost:3002",
-    "http://127.0.0.1:3002",
-]
+if LIVE:
+    CORS_ALLOWED_ORIGINS = [
+        "https://member.lereussicakes.com",
+        "https://admin.lereussicakes.com",
+        "https://dawnbringer.lereussicakes.com",
+        "https://139.59.244.242",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "https://member.lereussicakes.com",
+        "https://admin.lereussicakes.com",
+        "https://dawnbringer.lereussicakes.com",
+        "https://139.59.244.242",
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://0.0.0.0:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://0.0.0.0:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
+    ]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
