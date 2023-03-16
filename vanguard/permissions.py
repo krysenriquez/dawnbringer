@@ -6,27 +6,19 @@ from users.enums import UserType
 
 class IsDeveloperUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        if request.user.user_type == UserType.DEVELOPER:
-            return bool(request.user and request.user.user_type == UserType.DEVELOPER)
-        return False
+        return bool(request.user and request.user.user_type.user_type_name == UserType.DEVELOPER)
 
 
 class IsAdminUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        if request.user.user_type == UserType.ADMIN:
-            return bool(request.user and request.user.user_type == UserType.ADMIN)
-        return False
+        return bool(request.user and request.user.user_type.user_type_name == UserType.ADMIN)
 
 
 class IsStaffUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        if request.user.user_type == UserType.STAFF:
-            return bool(request.user and request.user.user_type == UserType.STAFF)
-        return False
+        return bool(request.user and request.user.user_type.user_type_name == UserType.STAFF)
 
 
 class IsMemberUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        if request.user.user_type == UserType.MEMBER:
-            return bool(request.user and request.user.user_type == UserType.MEMBER)
-        return False
+        return bool(request.user and request.user.user_type.user_type_name == UserType.MEMBER)

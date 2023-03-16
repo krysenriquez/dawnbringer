@@ -1,18 +1,23 @@
+from rest_framework import status, views, permissions
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from shop.models import PageContent, PageComponent, SectionComponent
 from shop.serializers import (
     PageContentsListSerializer,
     PageContentInfoSerializer,
+    PageContentSerializer,
     PageComponentsListSerializer,
     PageComponentInfoSerializer,
+    PageComponentSerializer,
     SectionComponentsListSerializer,
     SectionComponentInfoSerializer,
-    ShopPageComponentsSerializer,
+    SectionComponentSerializer,
     ShopPageContentsSerializer,
-    ShopSectionComponentsSerializer,
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 from vanguard.throttle import DevTestingAnonThrottle
+from users.enums import ActionType
+from users.services import create_user_logs
 
 
 class PageContentsListViewSet(ModelViewSet):
@@ -22,7 +27,7 @@ class PageContentsListViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        return PageContent.objects.exclude(is_deleted=True)
+        return PageContent.objects.exclude(is_deleted=True).order_by("-id")
 
 
 class PageContentsInfoViewSet(ModelViewSet):
@@ -32,8 +37,8 @@ class PageContentsInfoViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        id = self.request.query_params.get("id", None)
-        return PageContent.objects.exclude(is_deleted=True).filter(id=id)
+        page_content_id = self.request.query_params.get("page_content_id", None)
+        return PageContent.objects.exclude(is_deleted=True).filter(page_content_id=page_content_id)
 
 
 class PageComponentsListViewSet(ModelViewSet):
@@ -53,8 +58,8 @@ class PageComponentsInfoViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        id = self.request.query_params.get("id", None)
-        return PageComponent.objects.exclude(is_deleted=True).filter(id=id)
+        page_component_id = self.request.query_params.get("page_component_id", None)
+        return PageComponent.objects.exclude(is_deleted=True).filter(page_component_id=page_component_id)
 
 
 class SectionComponentsListViewSet(ModelViewSet):
@@ -74,8 +79,154 @@ class SectionComponentsInfoViewSet(ModelViewSet):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        id = self.request.query_params.get("branch_id", None)
-        return SectionComponent.objects.exclude(is_deleted=True).filter(id=id)
+        section_component_id = self.request.query_params.get("section_component_id", None)
+        return SectionComponent.objects.exclude(is_deleted=True).filter(section_component_id=section_component_id)
+
+
+class CreatePageContentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        request.data["created_by"] = request.user.pk
+        request.data["modified_by"] = request.user.pk
+        serializer = PageContentSerializer(data=request.data)
+        if serializer.is_valid():
+            created_page_content = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.CREATE,
+                content_type_model="pagecontent",
+                object_id=created_page_content.pk,
+                object_type="Page Content",
+                object_uuid=created_page_content.page_content_id,
+                value_to_display="Created Page Content",
+            )
+            return Response(data={"detail": "Page Content created."}, status=status.HTTP_201_CREATED)
+        else:
+            print(serializer.errors)
+            return Response(
+                data={"detail": "Unable to create Page Content."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdatePageContentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        page_content = PageContent.objects.get(page_content_id=request.data["page_content_id"])
+        serializer = PageContentSerializer(page_content, data=request.data, partial=True, context={"request": request})
+        if serializer.is_valid():
+            updated_page_content = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.UPDATE,
+                content_type_model="pagecontent",
+                object_id=updated_page_content.pk,
+                object_type="Page Content",
+                object_uuid=updated_page_content.page_content_id,
+                value_to_display="Updated Page Content",
+            )
+            return Response(data={"detail": "Page Content updated."}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data={"detail": "Unable to update Page Content."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class CreatePageComponentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        request.data["created_by"] = request.user.pk
+        request.data["modified_by"] = request.user.pk
+        serializer = PageComponentSerializer(data=request.data)
+        if serializer.is_valid():
+            created_page_component = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.CREATE,
+                component_type_model="pagecomponent",
+                object_id=created_page_component.pk,
+                object_type="Page Component",
+                object_uuid=created_page_component.page_component_id,
+                value_to_display="Created Page Component",
+            )
+            return Response(data={"detail": "Page Component created."}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                data={"detail": "Unable to create Page Component."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdatePageComponentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        page_component = PageComponent.objects.get(page_component_id=request.data["page_component_id"])
+        serializer = PageComponentSerializer(
+            page_component, data=request.data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            updated_page_component = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.UPDATE,
+                component_type_model="pagecomponent",
+                object_id=updated_page_component.pk,
+                object_type="Page Component",
+                object_uuid=updated_page_component.page_component_id,
+                value_to_display="Updated Page Component",
+            )
+            return Response(data={"detail": "Page Component updated."}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data={"detail": "Unable to update Page Component."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class CreateSectionComponentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        request.data["created_by"] = request.user.pk
+        request.data["modified_by"] = request.user.pk
+        serializer = SectionComponentSerializer(data=request.data)
+        if serializer.is_valid():
+            created_section_component = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.CREATE,
+                component_type_model="sectioncomponent",
+                object_id=created_section_component.pk,
+                object_type="Section Component",
+                object_uuid=created_section_component.section_component_id,
+                value_to_display="Created Section Component",
+            )
+            return Response(data={"detail": "Section Component created."}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                data={"detail": "Unable to create Section Component."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class UpdateSectionComponentView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        section_component = SectionComponent.objects.get(section_component_id=request.data["section_component_id"])
+        serializer = SectionComponentSerializer(
+            section_component, data=request.data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            updated_section_component = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.UPDATE,
+                component_type_model="sectioncomponent",
+                object_id=updated_section_component.pk,
+                object_type="Section Component",
+                object_uuid=updated_section_component.section_component_id,
+                value_to_display="Updated Section Component",
+            )
+            return Response(data={"detail": "Section Component updated."}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data={"detail": "Unable to update Section Component."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 # Front End

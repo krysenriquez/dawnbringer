@@ -14,6 +14,8 @@ from settings.serializers import (
 )
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 from vanguard.throttle import DevTestingAnonThrottle
+from users.enums import ActionType
+from users.services import create_user_logs
 
 
 class BranchAssignmentsViewSet(ModelViewSet):
@@ -62,10 +64,19 @@ class CompanyViewSet(ModelViewSet):
 class CreateBranchView(views.APIView):
     def post(self, request, *args, **kwargs):
         request.data["created_by"] = request.user.pk
-        print(request.data)
+        request.data["modified_by"] = request.user.pk
         serializer = CreateBranchSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            created_branch = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.CREATE,
+                content_type_model="branch",
+                object_id=created_branch.pk,
+                object_type="Branch",
+                object_uuid=created_branch.branch_id,
+                value_to_display="Created Branch",
+            )
             return Response(data={"detail": "Branch created."}, status=status.HTTP_201_CREATED)
         else:
             return Response(
@@ -77,13 +88,22 @@ class CreateBranchView(views.APIView):
 class UpdateBranchView(views.APIView):
     def post(self, request, *args, **kwargs):
         branch = Branch.objects.get(branch_id=request.data["branch_id"])
-        serializer = CreateBranchSerializer(branch, data=request.data, partial=True)
+        serializer = CreateBranchSerializer(branch, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
-            serializer.save()
-            return Response(data={"detail": "Branch created."}, status=status.HTTP_201_CREATED)
+            updated_branch = serializer.save()
+            create_user_logs(
+                user=request.user,
+                action_type=ActionType.UPDATE,
+                content_type_model="branch",
+                object_id=updated_branch.pk,
+                object_type="Branch",
+                object_uuid=updated_branch.branch_id,
+                value_to_display="Updated Branch",
+            )
+            return Response(data={"detail": "Branch updated."}, status=status.HTTP_200_OK)
         else:
             return Response(
-                data={"detail": "Unable to create Branch."},
+                data={"detail": "Unable to update Branch."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

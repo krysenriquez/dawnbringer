@@ -17,7 +17,7 @@ class ReferralOrdersListSerializer(ModelSerializer):
 
     # def to_representation(self, instance):
     #     request = self.context["request"]
-    # 
+    #
     #     points = instance.get_membership_level_points()
     #     data = super(ReferralOrdersListSerializer, self).to_representation(instance)
     #     data.update({"points": points})
@@ -71,7 +71,7 @@ class OrderCustomersListSerializer(ModelSerializer):
 class OrderHistorySerializer(ModelSerializer):
     order_stage = serializers.IntegerField(source="get_order_status_stage", required=False)
     order_note = serializers.CharField(source="get_order_default_note", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = OrderHistory

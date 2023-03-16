@@ -145,7 +145,7 @@ class BranchAssignment(models.Model):
         on_delete=models.CASCADE,
         related_name="branch_assignment",
     )
-    branch = models.ManyToManyField("settings.Branch", related_name="assignment")
+    branch = models.ManyToManyField("settings.Branch", related_name="assignment", blank=True)
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
         "users.User",

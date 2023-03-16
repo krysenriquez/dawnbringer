@@ -47,10 +47,10 @@ class WhoAmIView(views.APIView):
             "display_name": request.user.display_name,
             "email_address": request.user.email_address,
             "username": request.user.username,
-            "user_type": request.user.user_type,
+            "user_type": request.user.user_type.user_type_name,
         }
 
-        if request.user.user_type == UserType.MEMBER:
+        if request.user.user_type.user_type_name == UserType.MEMBER:
             account = Account.objects.get(user=request.user)
             if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
                 data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
@@ -63,12 +63,12 @@ class WhoAmIView(views.APIView):
 
 class WhoAmIShopView(views.APIView):
     def post(self, request, *args, **kwargs):
-        if request.user.user_type == UserType.MEMBER:
+        if request.user.user_type.user_type_name == UserType.MEMBER:
             data = {
                 "user_id": request.user.user_id,
                 "email_address": request.user.email_address,
                 "username": request.user.username,
-                "user_type": request.user.user_type,
+                "user_type": request.user.user_type.user_type_name,
             }
 
             account = Account.objects.get(user=request.user)

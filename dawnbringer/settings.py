@@ -66,6 +66,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "request_logging.middleware.LoggingMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "users.middleware.ActiveUserMiddleware",
 ]
 
 ROOT_URLCONF = "dawnbringer.urls"
@@ -139,6 +140,12 @@ LOGGING = {
     },
     "handlers": {
         "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
+        "file_debug_django": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": LOG_PATH + "django.log",
+            "formatter": "verbose",
+        },
         "file_debug_django_requests": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
@@ -153,9 +160,9 @@ LOGGING = {
         },
     },
     "loggers": {
-        "odysseyLogger": {
-            "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+        "": {
+            "handlers": ["file_debug_django", "console"],
+            "level": "DEBUG",
             "propagate": True,
         },
         "django.request": {
@@ -250,3 +257,18 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 # Set Max Upload Size to 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_table",
+    }
+}
+
+
+# Number of seconds of inactivity before a user is marked offline
+USER_ONLINE_TIMEOUT = 300
+
+# Number of seconds that we will keep track of inactive users before
+# their last seen is removed from the cache
+USER_LASTSEEN_TIMEOUT = 60 * 60 * 24 * 7

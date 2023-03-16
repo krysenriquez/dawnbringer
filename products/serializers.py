@@ -30,9 +30,13 @@ class HistoricalRecordField(serializers.ListField):
             if old_record is None:
                 old_record = history
             else:
-                delta = history.diff_against(old_record)
+                delta = old_record.diff_against(history)
                 for change in delta.changes:
-                    changes.append("{} changed from {} to {}".format(change.field, change.old, change.new))
+                    changes.append(
+                        "{} changed from {} to {}".format(
+                            change.field, change.old if change.old else "None", change.new if change.new else "None"
+                        )
+                    )
                 old_record = history
 
             data["modified"] = history.modified
@@ -55,7 +59,7 @@ class HistoricalRecordField(serializers.ListField):
 class SupplyHistorySerializer(ModelSerializer):
     supply_stage = serializers.IntegerField(source="get_supply_status_stage", required=False)
     supply_note = serializers.CharField(source="get_supply_default_note", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = SupplyHistory
@@ -98,7 +102,7 @@ class SuppliesListSerializer(ModelSerializer):
     supply_number = serializers.CharField(source="get_supply_number", required=False)
     branch_from_name = serializers.CharField(source="branch_from.branch_name", required=False)
     branch_to_name = serializers.CharField(source="branch_to.branch_name", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     current_supply_status = serializers.CharField(source="get_last_supply_status", required=False)
 
     class Meta:
@@ -121,7 +125,7 @@ class SupplyInfoSerializer(ModelSerializer):
     branch_to_name = serializers.CharField(source="branch_to.branch_name", required=False)
     current_supply_status = serializers.CharField(source="get_last_supply_status", required=False)
     current_supply_stage = serializers.CharField(source="get_last_supply_stage", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     branch_from = BranchInfoSerializer()
     branch_to = BranchInfoSerializer()
     history = HistoricalRecordField(read_only=True)
@@ -280,7 +284,7 @@ class PricesSerializer(ModelSerializer):
 
 class ProductVariantOptionsSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = ProductVariant
@@ -290,7 +294,7 @@ class ProductVariantOptionsSerializer(ModelSerializer):
 class ProductVariantsListSerializer(ModelSerializer):
     product_name = serializers.CharField(source="product.product_name", required=False)
     base_price = serializers.DecimalField(source="price.base_price", decimal_places=2, max_digits=13)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     def to_representation(self, instance):
         request = self.context["request"]
@@ -326,7 +330,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
     meta = ProductVariantMetaSerializer()
     price = PricesSerializer()
     product_name = serializers.CharField(source="product.product_name", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     history = HistoricalRecordField(read_only=True)
 
     def to_representation(self, instance):
@@ -457,7 +461,7 @@ class ProductOptionsSerializer(ModelSerializer):
 class ProductsListSerializer(ModelSerializer):
     product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = Product
@@ -477,7 +481,7 @@ class ProductInfoSerializer(ModelSerializer):
     product_variants = ProductVariantOptionsSerializer(many=True, required=False)
     product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     enabled_variant_name = serializers.CharField(source="enabled_variant.variant_name", required=False)
     history = HistoricalRecordField(read_only=True)
 
@@ -567,7 +571,7 @@ class ProductTypeOptionsSerializer(ModelSerializer):
 
 
 class ProductTypesListSerializer(ModelSerializer):
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = ProductType
@@ -584,7 +588,7 @@ class ProductTypesListSerializer(ModelSerializer):
 class ProductTypeInfoSerializer(ModelSerializer):
     meta = ProductTypeMetaSerializer(required=False)
     products = ProductsListSerializer(many=True, required=False)
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     modified_by_name = serializers.CharField(source="modified_by.username", required=False)
     history = HistoricalRecordField(read_only=True)
 

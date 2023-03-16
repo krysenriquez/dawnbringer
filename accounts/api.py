@@ -20,7 +20,6 @@ from accounts.services import (
 )
 from users.enums import UserType
 from users.models import User
-from users.services import create_new_user
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsMemberUser, IsStaffUser
 
 
@@ -109,25 +108,24 @@ class VerifyAccountView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
-        if request.user.user_type == UserType.ADMIN:
-            account_id = request.data.get("account_id").lstrip("0")
-            if account_id:
-                try:
-                    account = Account.objects.get(id=account_id)
-                    return Response(
-                        data={"detail": "Account existing."},
-                        status=status.HTTP_200_OK,
-                    )
-                except Account.DoesNotExist:
-                    return Response(
-                        data={"detail": "Account does not exist."},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
-            else:
+        account_id = request.data.get("account_id").lstrip("0")
+        if account_id:
+            try:
+                account = Account.objects.get(id=account_id)
+                return Response(
+                    data={"detail": "Account existing."},
+                    status=status.HTTP_200_OK,
+                )
+            except Account.DoesNotExist:
                 return Response(
                     data={"detail": "Account does not exist."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
+        else:
+            return Response(
+                data={"detail": "Account does not exist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 # class UpdateAccountView(views.APIView):

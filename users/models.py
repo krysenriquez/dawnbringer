@@ -1,4 +1,7 @@
 import uuid
+import datetime
+from django.core.cache import cache
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import (
     AbstractUser,
@@ -9,7 +12,8 @@ from django.contrib.contenttypes.fields import (
 )
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
-from users.enums import UserType, ActionType
+from simple_history.models import HistoricalRecords
+from users.enums import ActionType
 
 
 class UserManager(BaseUserManager):
@@ -29,7 +33,6 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
-        extra_fields.setdefault("user_type", UserType.DEVELOPER)
 
         email_address = self.normalize_email(email_address)
         username = self.model.normalize_username(username)
@@ -45,7 +48,6 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         extra_fields.setdefault("is_active", True)
-        extra_fields.setdefault("user_type", UserType.STAFF)
 
         email_address = self.normalize_email(email_address)
         username = self.model.normalize_username(username)
@@ -56,12 +58,45 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         extra_fields.setdefault("is_active", True)
-        extra_fields.setdefault("user_type", UserType.MEMBER)
 
         email_address = self.normalize_email(email_address)
         username = self.model.normalize_username(username)
 
         return self._create_user(username, email_address, password, **extra_fields)
+
+
+class UserType(models.Model):
+    user_type_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    user_type_name = models.CharField(
+        max_length=255,
+    )
+
+    def get_all_users_count(self):
+        return self.users.all().count()
+
+    def __str__(self):
+        return "%s" % (self.user_type_name)
+
+
+class Module(models.Model):
+    module_name = models.CharField(
+        max_length=255,
+    )
+
+    def __str__(self):
+        return "%s" % (self.module_name)
+
+
+class Permission(models.Model):
+    user_type = models.ForeignKey(UserType, on_delete=models.CASCADE, related_name="permissions")
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="permissions")
+    can_create = models.BooleanField(default=False)
+    can_retrieve = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    can_update = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "%s: %s" % (self.user_type, self.module)
 
 
 class User(AbstractUser):
@@ -76,14 +111,23 @@ class User(AbstractUser):
         max_length=50,
         unique=True,
     )
-    user_type = models.CharField(
-        max_length=10,
-        choices=UserType.choices,
-        default=UserType.MEMBER,
-    )
+    user_type = models.ForeignKey(UserType, on_delete=models.CASCADE, related_name="users", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        related_name="created_user",
+        null=True,
+    )
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        related_name="modified_user",
+        null=True,
+    )
+    history = HistoricalRecords()
     objects = UserManager()
 
     USERNAME_FIELD = "username"
@@ -113,6 +157,22 @@ class User(AbstractUser):
             accounts.append(account)
         return accounts
 
+    def get_last_seen(self, obj):
+        last_seen = cache.get("seen_%s" % obj.username)
+        obj.last_seen = last_seen
+        return last_seen
+
+    def get_online(self, obj):
+        if obj.last_seen:
+            now = datetime.datetime.now()
+            delta = datetime.timedelta(seconds=settings.USER_ONLINE_TIMEOUT)
+            if now > obj.last_seen + delta:
+                return False
+            else:
+                return True
+        else:
+            return False
+
 
 class UserLogs(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_logs")
@@ -141,7 +201,7 @@ class UserLogs(models.Model):
         blank=True,
         null=True,
     )
-    api_link = models.CharField(
+    object_uuid = models.CharField(
         max_length=255,
         blank=True,
         null=True,

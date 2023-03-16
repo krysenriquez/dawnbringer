@@ -57,7 +57,7 @@ class UserAdmin(BaseUserAdmin):
     list_display = ("username", "display_name", "email_address", "is_active", "is_staff", "is_superuser")
     list_filter = ("is_staff", "is_active", "user_type")
     fieldsets = (
-        (None, {"fields": ("username", "email_address", "display_name", "password")}),
+        (None, {"fields": ("username", "email_address", "display_name", "password", "created_by", "modified_by")}),
         (
             "Permissions",
             {"fields": ("user_type", "is_active", "is_staff", "is_superuser", "user_permissions")},
@@ -94,4 +94,7 @@ users_models = [UserLogs, LogDetails]
 admin.site.register(LogEntry)
 admin.site.unregister(Group)
 admin.site.register(User, UserAdmin)
+admin.site.register(UserType)
+admin.site.register(Module)
+admin.site.register(Permission)
 admin.site.register(users_models)

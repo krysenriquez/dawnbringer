@@ -3,10 +3,149 @@ from rest_framework.serializers import ModelSerializer
 from shop.models import PageComponent, PageContent, SectionComponent
 
 
+class HistoricalRecordField(serializers.ListField):
+    def to_representation(self, instance):
+        histories = instance.all()
+        old_record = None
+        historical_data = []
+        for history in histories.iterator():
+            data = {}
+            changes = []
+            if old_record is None:
+                old_record = history
+            else:
+                delta = old_record.diff_against(history)
+                for change in delta.changes:
+                    changes.append(
+                        "{} changed from {} to {}".format(
+                            change.field, change.old if change.old else "None", change.new if change.new else "None"
+                        )
+                    )
+                old_record = history
+
+            data["modified"] = history.modified
+            if history.modified_by:
+                data["modified_by"] = history.modified_by.username
+            else:
+                data["modified_by"] = None
+
+            if len(changes) > 0:
+                data["changes"] = changes
+            else:
+                data["changes"] = None
+
+            historical_data.append(data)
+
+        return super().to_representation(historical_data)
+
+
+class PageContentsListSerializer(ModelSerializer):
+    class Meta:
+        model = PageContent
+        fields = [
+            "page_content_id",
+            "internal_name",
+            "page_title",
+            "page_slug",
+            "is_published",
+        ]
+
+
+class PageContentInfoSerializer(ModelSerializer):
+    history = HistoricalRecordField(read_only=True)
+
+    class Meta:
+        model = PageContent
+        fields = [
+            "page_content_id",
+            "internal_name",
+            "page_title",
+            "page_slug",
+            "is_home",
+            "meta_description",
+            "meta_robots",
+            "meta_keywords",
+            "other_meta_data",
+            "is_published",
+            "history",
+        ]
+
+
+class PageContentSerializer(ModelSerializer):
+    def create(self, validated_data):
+        page_content = PageContent.objects.create(**validated_data)
+
+        return page_content
+
+    def update(self, instance, validated_data):
+        instance.internal_name = validated_data.get("internal_name", instance.internal_name)
+        instance.page_title = validated_data.get("page_title", instance.page_title)
+        instance.page_slug = validated_data.get("page_slug", instance.page_slug)
+        instance.is_home = validated_data.get("is_home", instance.is_home)
+        instance.meta_description = validated_data.get("meta_description", instance.meta_description)
+        instance.meta_robots = validated_data.get("meta_robots", instance.meta_robots)
+        instance.meta_keywords = validated_data.get("meta_keywords", instance.meta_keywords)
+        instance.other_meta_data = validated_data.get("other_meta_data", instance.other_meta_data)
+        instance.is_published = validated_data.get("is_published", instance.is_published)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.modified_by = self.context.get("request").user
+        instance.save()
+
+        return instance
+
+    class Meta:
+        model = PageContent
+        fields = "__all__"
+
+
+class PageComponentsListSerializer(ModelSerializer):
+    page_content_name = serializers.CharField(source="page_content.internal_name", required=False)
+
+    class Meta:
+        model = PageComponent
+        fields = [
+            "page_component_id",
+            "page_content_name",
+            "name",
+            "is_published",
+            "is_deleted",
+        ]
+
+
+class PageComponentInfoSerializer(ModelSerializer):
+    history = HistoricalRecordField(read_only=True)
+
+    class Meta:
+        model = PageComponent
+        fields = ["page_component_id", "name", "is_published", "is_deleted", "history"]
+
+
+class PageComponentSerializer(ModelSerializer):
+    def create(self, validated_data):
+        page_component = PageComponent.objects.create(**validated_data)
+
+        return page_component
+
+    def update(self, instance, validated_data):
+        instance.page_content = validated_data.get("page_content", instance.page_content)
+        instance.name = validated_data.get("name", instance.name)
+        instance.is_published = validated_data.get("is_published", instance.is_published)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.modified_by = self.context.get("request").user
+        instance.save()
+
+        return instance
+
+    class Meta:
+        model = PageComponent
+        fields = "__all__"
+
+
 class SectionComponentsListSerializer(ModelSerializer):
     class Meta:
         model = SectionComponent
         fields = [
+            "section_component_id",
             "name",
             "title",
             "sub_title",
@@ -15,9 +154,12 @@ class SectionComponentsListSerializer(ModelSerializer):
 
 
 class SectionComponentInfoSerializer(ModelSerializer):
+    history = HistoricalRecordField(read_only=True)
+
     class Meta:
         model = SectionComponent
         fields = [
+            "section_component_id",
             "title",
             "sub_title",
             "description_1",
@@ -28,54 +170,38 @@ class SectionComponentInfoSerializer(ModelSerializer):
             "button_link",
             "image",
             "is_published",
+            "history",
         ]
 
 
-class PageComponentsListSerializer(ModelSerializer):
+class SectionComponentSerializer(ModelSerializer):
+    def create(self, validated_data):
+        section_component = SectionComponent.objects.create(**validated_data)
+
+        return section_component
+
+    def update(self, instance, validated_data):
+        instance.page_component = validated_data.get("page_component", instance.page_component)
+        instance.name = validated_data.get("name", instance.name)
+        instance.title = validated_data.get("title", instance.title)
+        instance.sub_title = validated_data.get("sub_title", instance.sub_title)
+        instance.description_1 = validated_data.get("description_1", instance.description_1)
+        instance.description_2 = validated_data.get("description_2", instance.description_2)
+        instance.description_3 = validated_data.get("description_3", instance.description_3)
+        instance.promo_text = validated_data.get("promo_text", instance.promo_text)
+        instance.button_text = validated_data.get("button_text", instance.button_text)
+        instance.button_link = validated_data.get("button_link", instance.button_link)
+        instance.image = validated_data.get("image", instance.image)
+        instance.is_published = validated_data.get("is_published", instance.is_published)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.modified_by = self.context.get("request").user
+        instance.save()
+
+        return instance
+
     class Meta:
-        model = PageComponent
-        fields = [
-            "name",
-            "is_published",
-            "is_deleted",
-        ]
-
-
-class PageComponentInfoSerializer(ModelSerializer):
-    class Meta:
-        model = PageComponent
-        fields = [
-            "name",
-            "is_published",
-            "is_deleted",
-        ]
-
-
-class PageContentsListSerializer(ModelSerializer):
-    class Meta:
-        model = PageContent
-        fields = [
-            "internal_name",
-            "page_title",
-            "page_slug",
-            "is_published",
-        ]
-
-
-class PageContentInfoSerializer(ModelSerializer):
-    class Meta:
-        model = PageContent
-        fields = [
-            "internal_name",
-            "page_title",
-            "page_slug",
-            "is_home",
-            "meta_description",
-            "meta_robots",
-            "meta_keywords",
-            "other_meta_data",
-            "is_published",
-        ]
+        model = SectionComponent
+        fields = "__all__"
 
 
 # Front End

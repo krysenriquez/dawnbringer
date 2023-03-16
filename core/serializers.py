@@ -35,7 +35,7 @@ class MembershipLevelsSerializer(ModelSerializer):
 
 
 class ActivityDetailsSerializer(ModelSerializer):
-    created_by_username = serializers.CharField(source="created_by.username", required=False)
+    created_by_username = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = ActivityDetails

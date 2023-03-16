@@ -24,6 +24,12 @@ from shop.api import (
     PageComponentsInfoViewSet,
     SectionComponentsListViewSet,
     SectionComponentsInfoViewSet,
+    CreatePageContentView,
+    CreatePageComponentView,
+    CreateSectionComponentView,
+    UpdatePageContentView,
+    UpdatePageComponentView,
+    UpdateSectionComponentView,
 )
 from vanguard.api import AuthShopLoginView, WhoAmIShopView
 
@@ -51,6 +57,14 @@ router.register(r"v1/shop/getorder", ShopOrderInfoViewSet)
 router.register(r"v1/shop/getorderguest", ShopOrderInfoGuestViewSet)
 
 urlpatterns = [
+    # Admin
+    path("shop/createpagecontent/", CreatePageContentView.as_view()),
+    path("shop/updatepagecontent/", UpdatePageContentView.as_view()),
+    path("shop/createpagecomponent/", CreatePageComponentView.as_view()),
+    path("shop/updatepagecomponent/", UpdatePageComponentView.as_view()),
+    path("shop/createsectioncomponent/", CreateSectionComponentView.as_view()),
+    path("shop/updatesectioncomponent/", UpdateSectionComponentView.as_view()),
+    # Front End
     path("v1/shop/createorder/", CreateOrderView.as_view()),
     path("v1/shop/verifycode/", VerifyCodeView.as_view()),
     path("v1/shop/getdeliveryamount/", ShopGetDeliveryAreaAmountView.as_view()),

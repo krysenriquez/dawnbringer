@@ -5,6 +5,42 @@ from users.models import User
 from users.serializers import UsersListSerializer
 
 
+class HistoricalRecordField(serializers.ListField):
+    def to_representation(self, instance):
+        histories = instance.all()
+        old_record = None
+        historical_data = []
+        for history in histories.iterator():
+            data = {}
+            changes = []
+            if old_record is None:
+                old_record = history
+            else:
+                delta = old_record.diff_against(history)
+                for change in delta.changes:
+                    changes.append(
+                        "{} changed from {} to {}".format(
+                            change.field, change.old if change.old else "None", change.new if change.new else "None"
+                        )
+                    )
+                old_record = history
+
+            data["modified"] = history.modified
+            if history.modified_by:
+                data["modified_by"] = history.modified_by.username
+            else:
+                data["modified_by"] = None
+
+            if len(changes) > 0:
+                data["changes"] = changes
+            else:
+                data["changes"] = None
+
+            historical_data.append(data)
+
+        return super().to_representation(historical_data)
+
+
 class CompanySerializer(ModelSerializer):
     class Meta:
         model = Company
@@ -12,7 +48,7 @@ class CompanySerializer(ModelSerializer):
 
 
 class BranchesListSerializer(ModelSerializer):
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = Branch
@@ -29,8 +65,9 @@ class BranchesListSerializer(ModelSerializer):
 
 
 class BranchInfoSerializer(ModelSerializer):
-    created_by_name = serializers.CharField(source="created_by.username", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
     users = serializers.SerializerMethodField(source="get_users")
+    history = HistoricalRecordField(read_only=True)
 
     def get_users(obj, branch):
         qs = User.objects.filter(branch_assignment__branch=branch)
@@ -57,6 +94,7 @@ class BranchInfoSerializer(ModelSerializer):
             "is_active",
             "created",
             "created_by_name",
+            "history",
         ]
 
 
@@ -80,30 +118,14 @@ class CreateBranchSerializer(ModelSerializer):
         instance.can_deliver = validated_data.get("can_deliver", instance.can_deliver)
         instance.can_supply = validated_data.get("can_supply", instance.can_supply)
         instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.modified_by = self.context.get("request").user
         instance.save()
 
         return instance
 
     class Meta:
         model = Branch
-        fields = [
-            "id",
-            "branch_name",
-            "address1",
-            "address2",
-            "city",
-            "zip",
-            "province",
-            "country",
-            "phone",
-            "email_address",
-            "is_main",
-            "can_deliver",
-            "can_supply",
-            "is_active",
-            "created",
-            "created_by",
-        ]
+        fields = "__all__"
 
 
 class BranchAssignmentsSerializer(ModelSerializer):

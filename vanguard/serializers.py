@@ -24,7 +24,7 @@ class AuthAdminLoginSerializer(TokenObtainPairSerializer, TokenObtainSerializer)
         token = super().get_token(user)
         token["name"] = user.username
         token["email_address"] = user.email_address
-        token["user_type"] = user.user_type
+        token["user_type"] = user.user_type.user_type_name
 
         return token
 
@@ -48,7 +48,9 @@ class AuthAdminLoginSerializer(TokenObtainPairSerializer, TokenObtainSerializer)
         Thus stopping the execution righ there.  
         """
         try:
-            user = User.objects.get(~Q(user_type=UserType.MEMBER), username=authenticate_kwargs["username"])
+            user = User.objects.exclude(user_type__user_type_name="Member").get(
+                username=authenticate_kwargs["username"]
+            )
             if not user.is_active:
                 self.error_messages["no_active_account"] = _("Account has been deactivated")
                 raise exceptions.AuthenticationFailed(
@@ -85,7 +87,7 @@ class AuthLoginSerializer(TokenObtainPairSerializer, TokenObtainSerializer):
         token = super().get_token(user)
         token["name"] = user.username
         token["email_address"] = user.email_address
-        token["user_type"] = user.user_type
+        token["user_type"] = user.user_type.user_type_name
 
         return token
 
