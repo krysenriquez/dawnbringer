@@ -40,14 +40,18 @@ class HistoricalRecordField(serializers.ListField):
 
 
 class PageContentsListSerializer(ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
+
     class Meta:
         model = PageContent
         fields = [
+            "id",
             "page_content_id",
             "internal_name",
             "page_title",
             "page_slug",
             "is_published",
+            "created_by_name",
         ]
 
 
@@ -100,15 +104,18 @@ class PageContentSerializer(ModelSerializer):
 
 class PageComponentsListSerializer(ModelSerializer):
     page_content_name = serializers.CharField(source="page_content.internal_name", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
 
     class Meta:
         model = PageComponent
         fields = [
+            "id",
             "page_component_id",
             "page_content_name",
             "name",
             "is_published",
             "is_deleted",
+            "created_by_name",
         ]
 
 
@@ -117,7 +124,7 @@ class PageComponentInfoSerializer(ModelSerializer):
 
     class Meta:
         model = PageComponent
-        fields = ["page_component_id", "name", "is_published", "is_deleted", "history"]
+        fields = ["page_content", "page_component_id", "name", "is_published", "is_deleted", "history"]
 
 
 class PageComponentSerializer(ModelSerializer):
@@ -142,14 +149,19 @@ class PageComponentSerializer(ModelSerializer):
 
 
 class SectionComponentsListSerializer(ModelSerializer):
+    page_component_name = serializers.CharField(source="page_component.name", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
+
     class Meta:
         model = SectionComponent
         fields = [
             "section_component_id",
+            "page_component_name",
             "name",
             "title",
             "sub_title",
             "is_published",
+            "created_by_name",
         ]
 
 
@@ -160,6 +172,7 @@ class SectionComponentInfoSerializer(ModelSerializer):
         model = SectionComponent
         fields = [
             "section_component_id",
+            "name",
             "title",
             "sub_title",
             "description_1",
@@ -170,6 +183,7 @@ class SectionComponentInfoSerializer(ModelSerializer):
             "button_link",
             "image",
             "is_published",
+            "is_deleted",
             "history",
         ]
 
