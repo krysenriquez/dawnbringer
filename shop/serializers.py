@@ -172,6 +172,7 @@ class SectionComponentInfoSerializer(ModelSerializer):
         model = SectionComponent
         fields = [
             "section_component_id",
+            "page_component",
             "name",
             "title",
             "sub_title",
