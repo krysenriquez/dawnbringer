@@ -17,9 +17,11 @@ if LIVE:
         "https://member.lereussicakes.com",
         "https://admin.lereussicakes.com",
         "https://dawnbringer.lereussicakes.com",
+        "https://lereussicakes.com",
         "member.lereussicakes.com",
         "admin.lereussicakes.com",
         "dawnbringer.lereussicakes.com",
+        "lereussicakes.com",
         "https://139.59.244.242",
     ]
 
@@ -31,12 +33,14 @@ if LIVE:
         "https://member.lereussicakes.com",
         "https://admin.lereussicakes.com",
         "https://dawnbringer.lereussicakes.com",
+        "https://lereussicakes.com",
         "https://139.59.244.242",
     ]
     CSRF_TRUSTED_ORIGINS = [
         "https://member.lereussicakes.com",
         "https://admin.lereussicakes.com",
         "https://dawnbringer.lereussicakes.com",
+        "https://lereussicakes.com",
         "https://139.59.244.242",
     ]
 else:
