@@ -13,6 +13,11 @@ class Company(models.Model):
         null=True,
         blank=True,
     )
+    domain = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
     email_address = models.CharField(
         max_length=255,
         null=True,

@@ -513,10 +513,10 @@ class CreateSupplyHistoryView(views.APIView):
         if processed_supply_history:
             serializer = CreateSupplyHistorySerializer(data=processed_supply_history)
             if serializer.is_valid():
-                supply_history = serializer.save()
+                created_supply_history = serializer.save()
                 email_msg = None
-                if supply_history.email_sent:
-                    email_msg = notify_branch_to_on_supply_update_by_email(supply_history)
+                if created_supply_history.email_sent:
+                    email_msg = notify_branch_to_on_supply_update_by_email(created_supply_history.supply.pk)
                 if not email_msg:
                     return Response(data={"detail": "Supply updated."}, status=status.HTTP_201_CREATED)
                 return Response(data={"detail": "Supply updated. " + email_msg}, status=status.HTTP_201_CREATED)

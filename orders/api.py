@@ -156,9 +156,9 @@ class CreateOrderView(views.APIView):
             if serializer.is_valid():
                 email_msg = None
                 has_failed_upload = False
-                order = serializer.save()
-                email_msg = notify_customer_on_order_update_by_email(order.histories.first())
-                has_failed_upload = process_attachments(order, request.data)
+                created_order = serializer.save()
+                email_msg = notify_customer_on_order_update_by_email(created_order)
+                has_failed_upload = process_attachments(created_order, request.data)
                 if has_failed_upload:
                     return Response(
                         data={"detail": "Order created. Failed to upload attachments"},
@@ -184,15 +184,15 @@ class CreateOrderHistoryView(views.APIView):
         if process_order_history:
             serializer = CreateOrderHistorySerializer(data=process_order_history)
             if serializer.is_valid():
-                order_history = serializer.save()
+                created_order_history = serializer.save()
                 email_msg = None
-                if order_history.email_sent:
-                    email_msg = notify_customer_on_order_update_by_email(order_history)
+                if created_order_history.email_sent:
+                    email_msg = notify_customer_on_order_update_by_email(created_order_history.order)
 
-                if order_history.order_status == OrderStatus.COMPLETED:
-                    email_msg = check_for_exclusive_product_variant(order_history)
-                    if order_history.order.promo_code:
-                        comp_plan(request, order_history.order)
+                if created_order_history.order_status == OrderStatus.COMPLETED:
+                    email_msg = check_for_exclusive_product_variant(created_order_history)
+                    if created_order_history.order.promo_code:
+                        comp_plan(request, created_order_history.order)
                 if not email_msg:
                     return Response(data={"detail": "Order updated."}, status=status.HTTP_201_CREATED)
                 return Response(data={"detail": "Order updated. " + email_msg}, status=status.HTTP_201_CREATED)

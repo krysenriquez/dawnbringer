@@ -2,7 +2,7 @@ import json
 from django.shortcuts import get_object_or_404
 from core.enums import Settings
 from core.services import get_setting
-from emails.services import construct_and_send_email_payload, get_email_template, render_template
+from emails.services import construct_and_send_email_payload, render_template
 from products.enums import SupplyStatus
 from products.models import (
     Product,
@@ -14,6 +14,7 @@ from products.models import (
     ProductVariantMeta,
     Supply,
 )
+from products.serializers import SupplyInfoEmailSerializer
 from settings.models import Branch
 
 
@@ -158,7 +159,7 @@ def create_supply_status_filter(branch_id, supply_id, supply_status):
     # Both
     else:
         pass
-    print(StatusFilter)
+
     return StatusFilter
 
 
@@ -203,24 +204,23 @@ def process_supply_history_request(request):
         return data
 
 
-def notify_branch_to_on_supply_update_by_email(supply_history):
-    supply = get_object_or_404(Supply, id=supply_history.supply.pk)
-    branch_from = get_object_or_404(Branch, id=supply.branch_from.pk)
-    branch_to = get_object_or_404(Branch, id=supply.branch_to.pk)
+def notify_branch_to_on_supply_update_by_email(supply):
+    serialized_supply = SupplyInfoEmailSerializer(supply)
 
-    if supply:
-        template = "%s%s" % ("SUPPLY_", supply_history.supply_status)
-        email_template = get_email_template(template)
-        email_subject = render_template(email_template.subject, {})
+    if serialized_supply:
+
+        email_template = "emails/supply.html"
+        email_subject = "Supply is " + serialized_supply.data.get("current_supply_status").title()
         email_body = render_template(
-            email_template.body,
+            email_template,
             {
-                "branch_from_name": branch_from.branch_name,
-                "branch_to_name": branch_to.branch_name,
-                "supply_number": supply.get_supply_number(),
+                "supply": serialized_supply.data,
+                "sub_title": "Branch Supply!",
+                "title": email_subject + "!",
             },
         )
-        return construct_and_send_email_payload(email_subject, email_body, branch_to.email_address)
+
+        return construct_and_send_email_payload(email_subject, email_body, supply.branch_to.email_address)
 
     return None
 

@@ -5,9 +5,10 @@ from django.shortcuts import get_object_or_404
 from accounts.models import Account, Registration, Code
 from core.enums import Settings
 from core.services import get_setting
-from emails.services import construct_and_send_email_payload, get_email_template, render_template
+from emails.services import construct_and_send_email_payload, render_template
 from orders.models import Customer, Order, OrderAttachments
 from orders.enums import OrderStatus, OrderType
+from orders.serializers import OrderInfoSerializer
 from products.models import ProductVariant
 from settings.models import Branch
 
@@ -174,28 +175,38 @@ def process_attachments(order, request):
     return has_failed_upload
 
 
-def notify_customer_on_order_update_by_email(order_history):
-    order = get_object_or_404(Order, id=order_history.order.pk)
+def notify_customer_on_order_update_by_email(order):
+    serialized_order = OrderInfoSerializer(order)
 
-    if order:
+    if serialized_order:
+        shop_domain = str(get_setting(Settings.SHOP_DOMAIN))
         shop_order_link = str(get_setting(Settings.SHOP_ORDER_LINK))
-        template = "%s%s" % ("ORDER_", order_history.order_status)
-        email_template = get_email_template(template)
-        email_subject = render_template(email_template.subject, {})
+
+        email_template = "emails/order.html"
+        email_subject = "Order is " + serialized_order.data.get("current_order_status").title()
+
         if order.account:
             email_body = render_template(
-                email_template.body,
+                email_template,
                 {
-                    "customer": order.account.get_account_name,
-                    "link": shop_order_link + "?id=" + str(order.order_id),
+                    "order": serialized_order.data,
+                    "link": "".join((shop_domain, shop_order_link)),
+                    "sub_title": "Thank you for purchasing!",
+                    "title": email_subject + "!",
                 },
             )
             return construct_and_send_email_payload(email_subject, email_body, order.account.user.email_address)
 
         email_body = render_template(
-            email_template.body,
-            {"customer": order.customer.name, "link": shop_order_link + "?id=" + str(order.order_id)},
+            email_template,
+            {
+                "order": serialized_order.data,
+                "link": shop_domain + shop_order_link,
+                "sub_title": "Thank you for purchasing!",
+                "title": email_subject + "!",
+            },
         )
+        return email_body
         return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
 
     return None
@@ -215,17 +226,26 @@ def notify_customer_on_registration_by_email(order):
     if not registration_obj:
         return "Unable to send Registration Email"
 
-    registration_link = str(get_setting(Settings.REGISTRATION_LINK))
-    email_template = get_email_template("REGISTRATION")
-    email_subject = render_template(
-        email_template.subject,
-        {"customer": order.customer.name},
-    )
-    email_body = render_template(
-        email_template.body,
-        {"customer": order.customer.name, "link": registration_link + "?data=" + str(registration_obj)},
-    )
-    return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
+    serialized_order = OrderInfoSerializer(order)
+
+    if serialized_order:
+        email_template = "emails/registration.html"
+        email_subject = "Congratulations!"
+
+        member_domain = str(get_setting(Settings.MEMBER_DOMAIN))
+        registration_link = str(get_setting(Settings.REGISTRATION_LINK))
+
+        email_body = render_template(
+            email_template,
+            {
+                "order": serialized_order.data,
+                "link": "".join((member_domain, registration_link, str(registration_obj))),
+                "sub_title": "Thank you for purchasing!",
+                "title": email_subject + "!",
+            },
+        )
+
+        return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
 
 
 def create_registration_object(order):

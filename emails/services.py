@@ -1,24 +1,28 @@
-from django.template import Template, Context
 from django.core.mail import EmailMessage, get_connection
 from django.core.mail.backends.smtp import EmailBackend
+from django.shortcuts import get_object_or_404
+from django.template import Template, Context
+from django.template.loader import render_to_string
+from core.enums import Settings
+from core.services import get_setting
 from emails.models import EmailAddress, EmailTemplates
+from settings.models import Company
+from settings.serializers import CompanySerializer
 
 
 def get_main_email_settings():
     return EmailAddress.objects.all().first()
 
 
-def get_email_settings(email_address):
-    return EmailAddress.objects.get(server_host_user=email_address)
-
-
-def get_email_template(template_name):
-    return EmailTemplates.objects.get(template=template_name)
-
-
 def render_template(template, context):
-    rendered_template = Template(template)
-    return rendered_template.render(Context(context))
+    company = get_object_or_404(Company, id=1)
+    serialized_company = CompanySerializer(company)
+    context["company"] = serialized_company.data
+
+    api_domain = str(get_setting(Settings.API_DOMAIN))
+    context["base_url"] = api_domain
+
+    return render_to_string(template, context)
 
 
 def send_email(connection, from_email, subject, body, to_email):

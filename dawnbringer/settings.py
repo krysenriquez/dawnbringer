@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-gm=#!p)=mfvtjelrp-gjvjxnqo06#tek-5@f!_ei96qw8@g1^_"
 
 DEBUG = True
-LIVE = True
+LIVE = False
 
 if DEBUG and not LIVE:
     ALLOWED_HOSTS = ["*"]
@@ -100,10 +100,21 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "dawnbringer.urls"
 
+STATIC_URL = "/statics/"
+STATIC_ROOT = Path(BASE_DIR, "static_cdn")
+
+STATICFILES_DIRS = [
+    Path(BASE_DIR, "statics"),
+]
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path.absolute(Path(BASE_DIR, "media"))
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [Path(BASE_DIR, "statics", "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -267,20 +278,6 @@ TIME_ZONE = "Asia/Manila"
 USE_I18N = True
 
 USE_TZ = True
-
-STATIC_URL = "/statics/"
-
-STATICFILES_DIRS = [
-    Path(BASE_DIR, "statics"),
-]
-
-if not DEBUG:
-    STATIC_ROOT = Path(BASE_DIR, "static_cdn")
-
-STATIC_ROOT = Path(BASE_DIR, "static_cdn")
-
-MEDIA_ROOT = Path.absolute(Path(BASE_DIR, "media"))
-MEDIA_URL = "/media/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

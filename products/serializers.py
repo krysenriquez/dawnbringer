@@ -131,17 +131,54 @@ class SupplyInfoSerializer(ModelSerializer):
     history = HistoricalRecordField(read_only=True)
 
     def to_representation(self, instance):
-        request = self.context["request"]
-        branch_id = request.query_params["branch_id"]
-        can_update_supply_status = instance.get_can_update_supply_status(branch_id=branch_id)
-        data = super(SupplyInfoSerializer, self).to_representation(instance)
-        data.update(
-            {
-                "can_update_supply_status": can_update_supply_status,
-            }
-        )
+        request = self.context.get("request", None)
+        branch_id = request.query_params.get("branch_id", None)
+        if branch_id:
+            can_update_supply_status = instance.get_can_update_supply_status(branch_id=branch_id)
+            data = super(SupplyInfoSerializer, self).to_representation(instance)
+            data.update(
+                {
+                    "can_update_supply_status": can_update_supply_status,
+                }
+            )
 
-        return data
+            return data
+
+    class Meta:
+        model = Supply
+        fields = [
+            "details",
+            "histories",
+            "supply_number",
+            "branch_from_name",
+            "branch_to_name",
+            "current_supply_status",
+            "current_supply_stage",
+            "reference_number",
+            "carrier",
+            "carrier_contact_number",
+            "tracking_number",
+            "comment",
+            "created",
+            "created_by_name",
+            "branch_from",
+            "branch_to",
+            "history",
+        ]
+
+
+class SupplyInfoEmailSerializer(ModelSerializer):
+    details = SupplyDetailsSerializer(many=True, required=False)
+    histories = SupplyHistorySerializer(many=True, required=False)
+    supply_number = serializers.CharField(source="get_supply_number", required=False)
+    branch_from_name = serializers.CharField(source="branch_from.branch_name", required=False)
+    branch_to_name = serializers.CharField(source="branch_to.branch_name", required=False)
+    current_supply_status = serializers.CharField(source="get_last_supply_status", required=False)
+    current_supply_stage = serializers.CharField(source="get_last_supply_stage", required=False)
+    created_by_name = serializers.CharField(source="created_by.display_name", required=False)
+    branch_from = BranchInfoSerializer()
+    branch_to = BranchInfoSerializer()
+    history = HistoricalRecordField(read_only=True)
 
     class Meta:
         model = Supply

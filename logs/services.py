@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 def create_log(log_type=None, message=None, obj=None):
-    print(type(obj))
     match log_type:
         case "DEBUG":
             return logger.debug(message + ": " + json.dumps(obj))
