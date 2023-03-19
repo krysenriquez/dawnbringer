@@ -206,7 +206,7 @@ def notify_customer_on_order_update_by_email(order):
                 "title": email_subject + "!",
             },
         )
-        return email_body
+
         return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
 
     return None
