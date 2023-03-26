@@ -52,8 +52,8 @@ class WhoAmIView(views.APIView):
 
         if request.user.user_type.user_type_name == UserType.MEMBER:
             account = Account.objects.get(user=request.user)
-            if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
-                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
+            if account.avatar_info.avatar and hasattr(account.avatar_info.avatar, "url"):
+                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.avatar.url)
 
         return Response(
             data=data,
@@ -72,8 +72,8 @@ class WhoAmIShopView(views.APIView):
             }
 
             account = Account.objects.get(user=request.user)
-            if account.avatar_info.file_attachment and hasattr(account.avatar_info.file_attachment, "url"):
-                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.file_attachment.url)
+            if account.avatar_info.avatar and hasattr(account.avatar_info.avatar, "url"):
+                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.avatar.url)
 
             data["address_info"] = account.address_info.values()
             data["account_id"] = account.account_id

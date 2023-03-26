@@ -1,5 +1,4 @@
-{% extends "base_email.html" %} {% load static %} {% block content %}
-
+{% extends "base_email.html" %} {% load static %} {% block content %} {% load tags %}
 <table
   class="nl-container"
   width="100%"
@@ -82,9 +81,8 @@
                               >
                                 <p style="margin: 0; margin-bottom: 16px">
                                   <strong>
-                                    Hello {% if order.account %} {{ order.customer.full_name }} {% else %} {{ order.customer.name }} {% endif %}
+                                    Hello {% if order.account %} {{ order.customer.full_name }} {% else %} {{ order.customer.name }} {% endif %},
                                   </strong>
-                                  ,
                                 </p>
                                 <p style="margin: 0">Thank you for your order! Your order details are shown below for your reference:</p>
                               </div>
@@ -300,7 +298,6 @@
                                 "
                               >
                                 <p style="margin: 0">
-                                  {% load tags %}
                                   <strong>Order Date:</strong>
                                   {{ order.order_date|convert_str_date }}
                                 </p>
@@ -468,7 +465,7 @@
                               >
                                 <p style="margin: 0">
                                   <strong>Order Status:</strong>
-                                  {{ order.current_order_status|title }}
+                                  {{ order.current_order_status|field_name_to_label }}
                                 </p>
                               </div>
                             </td>
@@ -518,7 +515,7 @@
                               >
                                 <p style="margin: 0">
                                   <strong>Order Type:</strong>
-                                  {{ order.order_type|title }}
+                                  {{ order.order_type|field_name_to_label }}
                                 </p>
                               </div>
                             </td>
@@ -672,7 +669,7 @@
                             <td class="pad">
                               <div class="alignment" align="left" style="line-height: 10px">
                                 <img
-                                  src="{{ detail.variant_thumbnail }}"
+                                  src="{{ base_url }}{{ detail.variant_thumbnail }}"
                                   style="display: block; height: auto; border: 0; width: 115px; max-width: 100%"
                                   width="115"
                                 />
@@ -1016,136 +1013,6 @@
                                 "
                               >
                                 <p style="margin: 0">₱{{ order.order_amount }}</p>
-                              </div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <table
-          class="row row-10"
-          align="center"
-          width="100%"
-          border="0"
-          cellpadding="0"
-          cellspacing="0"
-          role="presentation"
-          style="mso-table-lspace: 0pt; mso-table-rspace: 0pt"
-        >
-          <tbody>
-            <tr>
-              <td>
-                <table
-                  class="row-content"
-                  align="center"
-                  border="0"
-                  cellpadding="0"
-                  cellspacing="0"
-                  role="presentation"
-                  style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #b18a08; border-radius: 0; color: #000000; width: 700px"
-                  width="700"
-                >
-                  <tbody>
-                    <tr>
-                      <td
-                        class="column column-1"
-                        width="66.66666666666667%"
-                        style="
-                          mso-table-lspace: 0pt;
-                          mso-table-rspace: 0pt;
-                          font-weight: 400;
-                          text-align: left;
-                          padding-bottom: 5px;
-                          padding-left: 20px;
-                          padding-top: 5px;
-                          vertical-align: middle;
-                          border-top: 0px;
-                          border-right: 0px;
-                          border-bottom: 0px;
-                          border-left: 0px;
-                        "
-                      >
-                        <table
-                          class="heading_block block-1"
-                          width="100%"
-                          border="0"
-                          cellpadding="0"
-                          cellspacing="0"
-                          role="presentation"
-                          style="mso-table-lspace: 0pt; mso-table-rspace: 0pt"
-                        >
-                          <tr>
-                            <td class="pad" style="padding-left: 10px; text-align: center; width: 100%">
-                              <h1
-                                style="
-                                  margin: 0;
-                                  color: #1e1e2d;
-                                  direction: ltr;
-                                  font-family: 'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;
-                                  font-size: 22px;
-                                  font-weight: 400;
-                                  letter-spacing: normal;
-                                  line-height: 120%;
-                                  text-align: left;
-                                  margin-top: 0;
-                                  margin-bottom: 0;
-                                "
-                              >
-                                <span class="tinyMce-placeholder">Discount</span>
-                              </h1>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td
-                        class="column column-2"
-                        width="33.333333333333336%"
-                        style="
-                          mso-table-lspace: 0pt;
-                          mso-table-rspace: 0pt;
-                          font-weight: 400;
-                          text-align: left;
-                          padding-bottom: 5px;
-                          padding-right: 20px;
-                          padding-top: 5px;
-                          vertical-align: middle;
-                          border-top: 0px;
-                          border-right: 0px;
-                          border-bottom: 0px;
-                          border-left: 0px;
-                        "
-                      >
-                        <table
-                          class="paragraph_block block-1"
-                          width="100%"
-                          border="0"
-                          cellpadding="0"
-                          cellspacing="0"
-                          role="presentation"
-                          style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word"
-                        >
-                          <tr>
-                            <td class="pad" style="padding-right: 10px">
-                              <div
-                                style="
-                                  color: #1e1e2d;
-                                  direction: ltr;
-                                  font-family: 'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;
-                                  font-size: 22px;
-                                  font-weight: 700;
-                                  letter-spacing: 0px;
-                                  line-height: 120%;
-                                  text-align: right;
-                                  mso-line-height-alt: 26.4px;
-                                "
-                              >
-                                <p style="margin: 0">₱{{ order.total_discount }}</p>
                               </div>
                             </td>
                           </tr>

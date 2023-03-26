@@ -17,9 +17,9 @@ from products.models import (
     SupplyHistory,
 )
 from products.serializers import (
-    CreateProductSerializer,
-    CreateProductTypeSerializer,
-    CreateProductVariantsSerializer,
+    CreateUpdateProductSerializer,
+    CreateUpdateProductTypeSerializer,
+    CreateUpdateProductVariantsSerializer,
     CreateSupplyHistorySerializer,
     ProductTypeOptionsSerializer,
     ProductTypesListSerializer,
@@ -31,7 +31,7 @@ from products.serializers import (
     ProductVariantsListSerializer,
     ProductVariantInfoSerializer,
     SuppliesListSerializer,
-    SupplyCreateSerializer,
+    SupplyUpdateCreateSerializer,
     SupplyInfoSerializer,
     ShopProductsVariantsSerializer,
     ShopProductsSerializer,
@@ -334,7 +334,7 @@ class CreateProductTypeView(views.APIView):
         processed_request = transform_form_data_to_json(request.data)
         processed_request["created_by"] = request.user.pk
         processed_request["modified_by"] = request.user.pk
-        serializer = CreateProductTypeSerializer(data=processed_request)
+        serializer = CreateUpdateProductTypeSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Product Type created."}, status=status.HTTP_201_CREATED)
@@ -353,7 +353,7 @@ class UpdateProductTypeView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         product_type = ProductType.objects.get(product_type_id=processed_request["product_type_id"])
-        serializer = CreateProductTypeSerializer(
+        serializer = CreateUpdateProductTypeSerializer(
             product_type, data=processed_request, partial=True, context={"request": request}
         )
         if serializer.is_valid():
@@ -379,7 +379,7 @@ class CreateProductView(views.APIView):
         processed_request = transform_form_data_to_json(request.data)
         processed_request["created_by"] = request.user.pk
         processed_request["modified_by"] = request.user.pk
-        serializer = CreateProductSerializer(data=processed_request)
+        serializer = CreateUpdateProductSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Product created."}, status=status.HTTP_201_CREATED)
@@ -398,7 +398,7 @@ class UpdateProductView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         product = Product.objects.get(product_id=processed_request["product_id"])
-        serializer = CreateProductSerializer(
+        serializer = CreateUpdateProductSerializer(
             product, data=processed_request, partial=True, context={"request": request}
         )
         if serializer.is_valid():
@@ -425,7 +425,7 @@ class CreateProductVariantView(views.APIView):
         processed_request["modified_by"] = request.user.pk
         processed_request["supplies"] = create_variant_initial_supply(processed_request, request)
 
-        serializer = CreateProductVariantsSerializer(data=processed_request)
+        serializer = CreateUpdateProductVariantsSerializer(data=processed_request)
         if serializer.is_valid():
             variant = serializer.save()
             has_failed_upload = process_media(variant, request.data)
@@ -449,7 +449,7 @@ class UpdateProductVariantView(views.APIView):
         processed_request = transform_variant_form_data_to_json(request.data)
         product_variant = ProductVariant.objects.get(variant_id=processed_request["variant_id"])
 
-        serializer = CreateProductVariantsSerializer(
+        serializer = CreateUpdateProductVariantsSerializer(
             product_variant, data=processed_request, partial=True, context={"request": request}
         )
         if serializer.is_valid():
@@ -476,7 +476,7 @@ class CreateSupplyView(views.APIView):
         processed_request["created_by"] = request.user.pk
         processed_request["modified_by"] = request.user.pk
         processed_request["histories"] = create_supply_initial_history(request.data)
-        serializer = SupplyCreateSerializer(data=processed_request)
+        serializer = SupplyUpdateCreateSerializer(data=processed_request)
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Supply Request created."}, status=status.HTTP_201_CREATED)
@@ -493,7 +493,7 @@ class UpdateSupplyView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         supply = Supply.objects.get(supply_id=request.data["supply_id"])
-        serializer = SupplyCreateSerializer(supply, data=request.data, partial=True, context={"request": request})
+        serializer = SupplyUpdateCreateSerializer(supply, data=request.data, partial=True, context={"request": request})
         if serializer.is_valid():
             serializer.save()
             return Response(data={"detail": "Supply Request updated."}, status=status.HTTP_201_CREATED)

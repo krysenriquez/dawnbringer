@@ -24,6 +24,7 @@ class Customer(models.Model):
         null=True,
         blank=True,
     )
+    created = models.DateTimeField(auto_now_add=True)
 
     def get_orders_count(self):
         return self.orders.count()
@@ -108,8 +109,23 @@ class Order(models.Model):
         except:
             return None
 
-    def get_membership_level_points(self):
-        return self.promo_code.account.get_four_level_referrers()
+    def get_promo_code_account_four_levels(self):
+        if self.promo_code:
+            return self.promo_code.account.get_four_level_referrers()
+        return []
+
+    def get_order_total_point_values(self):
+        data = {}
+        for detail in self.details.all():
+            for value in detail.product_variant.point_values.all():
+                data[value.membership_level.level] = {
+                    "total": data.get(value.membership_level.level, {}).get("total", 0)
+                    + (value.point_value * detail.quantity),
+                    "level": value.membership_level.level,
+                    "membership_level": value.membership_level.name,
+                }
+
+        return data
 
 
 class OrderDetail(models.Model):
@@ -135,6 +151,25 @@ class OrderDetail(models.Model):
         default=0, max_length=256, decimal_places=2, max_digits=13, blank=True, null=True
     )
     created = models.DateTimeField(auto_now_add=True)
+
+    def get_total_point_values(self):
+        # data = {}
+        data = []
+        for value in self.product_variant.point_values.all():
+            # data[value.membership_level.level] = {
+            #     "total": value.point_value * self.quantity,
+            #     "level": value.membership_level.level,
+            #     "membership_level": value.membership_level.name,
+            # }
+            data.append(
+                {
+                    "total": value.point_value * self.quantity,
+                    "level": value.membership_level.level,
+                    "membership_level": value.membership_level.name,
+                }
+            )
+
+        return data
 
     def __str__(self):
         return "%s : %s %s %s" % (

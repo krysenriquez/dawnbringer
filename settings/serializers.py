@@ -44,7 +44,7 @@ class HistoricalRecordField(serializers.ListField):
 class CompanySerializer(ModelSerializer):
     class Meta:
         model = Company
-        fields = ["name", "description", "logo"]
+        fields = ["name", "description", "logo", "domain", "email_address", "contact_number", "location"]
 
 
 class BranchesListSerializer(ModelSerializer):

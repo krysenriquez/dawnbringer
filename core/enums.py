@@ -15,6 +15,7 @@ class Settings(models.TextChoices):
     MEMBER_DOMAIN = "MEMBER_DOMAIN", _("Member Domain")
     ADMIN_DOMAIN = "ADMIN_DOMAIN", _("Admin Domain")
     POINT_CONVERSION_RATE = "POINT_CONVERSION_RATE", _("Point Conversion Rate")
+    MINIMUM_CONVERSTION_AMOUNT = "MINIMUM_CONVERSTION_AMOUNT", _("Minimum Conversion Amount")
     M_WALLET_CASHOUT_DAY = "M_WALLET_CASHOUT_DAY", _("Member Wallet Cashout Day")
     M_WALLET_CASHOUT_OVERRIDE = "M_WALLET_CASHOUT_OVERRIDE", _("Member Wallet Cashout Override")
     M_WALLET_MINIMUM_CASHOUT_AMOUNT = "M_WALLET_MINIMUM_CASHOUT_AMOUNT", _("Member Wallet Minimum Cashout Amount")

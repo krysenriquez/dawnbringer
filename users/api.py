@@ -14,7 +14,7 @@ from users.serializers import (
     UserTypesOptionsSerializer,
     UsersListSerializer,
     UserInfoSerializer,
-    CreateUserSerializer,
+    CreateUpdateUserSerializer,
     ContentTypeSerializer,
     UserLogsSerializer,
 )
@@ -143,7 +143,7 @@ class CreateUserView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         processed_request = process_create_user_request(request)
-        serializer = CreateUserSerializer(data=processed_request)
+        serializer = CreateUpdateUserSerializer(data=processed_request)
         if serializer.is_valid():
             user = serializer.save()
             assignment = create_branch_assignment(user)
@@ -256,7 +256,7 @@ class ChangeUsernameAdminView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             data = {"username": new_username, "can_change_username": False}
-            serializer = CreateUserSerializer(member_user, data=data, partial=True, context={"request": request})
+            serializer = CreateUpdateUserSerializer(member_user, data=data, partial=True, context={"request": request})
 
             if serializer.is_valid():
                 serializer.save()
@@ -295,7 +295,9 @@ class ChangeEmailAddressAdminView(views.APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 data = {"email_address": email_address, "can_change_email_address": False}
-                serializer = CreateUserSerializer(member_user, data=data, partial=True, context={"request": request})
+                serializer = CreateUpdateUserSerializer(
+                    member_user, data=data, partial=True, context={"request": request}
+                )
 
                 if serializer.is_valid():
                     serializer.save()
@@ -360,7 +362,7 @@ class ChangeUsernameView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             data = {"username": new_username, "can_change_username": False}
-            serializer = CreateUserSerializer(logged_user, data=data, partial=True, context={"request": request})
+            serializer = CreateUpdateUserSerializer(logged_user, data=data, partial=True, context={"request": request})
             if serializer.is_valid():
                 print(serializer)
                 serializer.save()
@@ -397,7 +399,9 @@ class ChangeEmailAddressView(views.APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
                 data = {"email_address": email_address, "can_change_email_address": False}
-                serializer = CreateUserSerializer(logged_user, data=data, partial=True, context={"request": request})
+                serializer = CreateUpdateUserSerializer(
+                    logged_user, data=data, partial=True, context={"request": request}
+                )
                 if serializer.is_valid():
                     serializer.save()
                     return Response(

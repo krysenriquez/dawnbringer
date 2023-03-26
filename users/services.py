@@ -31,9 +31,13 @@ def create_branch_assignment(request):
 
 
 def create_new_user(request):
+    user_type = UserType.objects.get(user_type_name=request.get("user_type_name"))
+
     data = {
-        "username": request["username"],
-        "email_address": request["email_address"],
+        "username": request.get("username"),
+        "email_address": request.get("email_address"),
+        "display_name": request.get("display_name"),
+        "user_type": user_type,
     }
     user = User.objects.create(**data)
     user.set_password(request["password"])

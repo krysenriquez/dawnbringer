@@ -1,9 +1,11 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from simple_history.admin import SimpleHistoryAdmin
 from users.models import *
 
 
@@ -49,7 +51,7 @@ class UserChangeForm(forms.ModelForm):
         return self.initial["password"]
 
 
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(SimpleHistoryAdmin):
     form = UserChangeForm
     add_form = UserCreationForm
     model = User
@@ -98,3 +100,4 @@ admin.site.register(UserType)
 admin.site.register(Module)
 admin.site.register(Permission)
 admin.site.register(users_models)
+admin.site.register(ContentType)

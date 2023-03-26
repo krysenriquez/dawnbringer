@@ -127,7 +127,19 @@ class ReferralOrdersListMemberViewSet(ModelViewSet):
     def get_queryset(self):
         user = User.objects.get(id=self.request.user.pk, is_active=True)
         if user is not None:
-            return Order.objects.filter(promo_code__account__user=user).order_by("-id")
+            return (
+                Order.objects.order_by("-id")
+                .annotate(first_level=F("promo_code__account__user"))
+                .annotate(second_level=F("promo_code__account__referrer__user"))
+                .annotate(third_level=F("promo_code__account__referrer__referrer__user"))
+                .annotate(fourth_level=F("promo_code__account__referrer__referrer__referrer__user"))
+                .filter(
+                    Q(first_level=self.request.user.pk)
+                    | Q(second_level=self.request.user.pk)
+                    | Q(third_level=self.request.user.pk)
+                    | Q(fourth_level=self.request.user.pk)
+                )
+            )
 
 
 # Order
@@ -141,16 +153,14 @@ class CreateOrderView(views.APIView):
         transformed_request["histories"] = create_order_initial_history()
         processed_request = process_order_request(transformed_request)
 
-        if transformed_request["account"]:
-            account = get_account(transformed_request)
-
+        account = get_account(transformed_request.get("account", None))
         if account is not None:
             processed_request["account"] = account.pk
-
-        if account is None:
-            customer = get_or_create_customer(transformed_request)
+        else:
+            customer = get_or_create_customer(transformed_request.get("customer", None))
             if customer is not None:
                 processed_request["customer"] = customer.pk
+
         if account is not None or customer is not None:
             serializer = CreateOrderSerializer(data=processed_request)
             if serializer.is_valid():
@@ -273,7 +283,7 @@ class ShopOrderInfoViewSet(ModelViewSet):
 class ShopOrderInfoGuestViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderInfoSerializer
-    permission_classes = [IsMemberUser]
+    permission_classes = []
     http_method_names = ["get"]
 
     def get_queryset(self):

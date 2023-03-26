@@ -1,4 +1,4 @@
-{% extends "base_email.html" %} {% load static %} {% block content %}
+{% extends "base_email.html" %} {% load static %} {% block content %} {% load tags %}
 <table
   class="nl-container"
   width="100%"
@@ -80,8 +80,7 @@
                                 "
                               >
                                 <p style="margin: 0; margin-bottom: 16px">
-                                  <strong>Hello {{ supply.branch_to_name }}</strong>
-                                  ,
+                                  <strong>Hello {{ supply.branch_to_name }},</strong>
                                 </p>
                                 <p style="margin: 0">Your supply details are shown below for your reference:</p>
                               </div>
@@ -681,7 +680,7 @@
                               >
                                 <p style="margin: 0">
                                   <strong>Supply Status:</strong>
-                                  {{ supply.current_supply_status }}
+                                  {{ supply.current_supply_status|field_name_to_label }}
                                 </p>
                               </div>
                             </td>

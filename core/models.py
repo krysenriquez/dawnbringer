@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from simple_history.models import HistoricalRecords
 from core.enums import ActivityType, ActivityStatus, WalletType, Settings
 
 
@@ -146,3 +147,34 @@ class ActivityDetails(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.activity, self.action)
+
+
+class CashoutMethods(models.Model):
+    method_name = models.CharField(
+        max_length=255,
+    )
+    is_disabled = models.BooleanField(
+        default=False,
+    )
+    is_deleted = models.BooleanField(
+        default=False,
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="created_cashout_methods",
+        null=True,
+    )
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_cashout_methods",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
+
+    def __str__(self):
+        return "%s - %s" % (self.method_name, self.is_disabled)

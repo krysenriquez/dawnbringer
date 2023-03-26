@@ -203,7 +203,7 @@ class SupplyInfoEmailSerializer(ModelSerializer):
         ]
 
 
-class SupplyCreateSerializer(ModelSerializer):
+class SupplyUpdateCreateSerializer(ModelSerializer):
     details = SupplyDetailsSerializer(many=True, required=False)
     histories = SupplyHistorySerializer(many=True, required=False)
 
@@ -404,7 +404,7 @@ class ProductVariantInfoSerializer(ModelSerializer):
         ]
 
 
-class CreateProductVariantsSerializer(ModelSerializer):
+class CreateUpdateProductVariantsSerializer(ModelSerializer):
     price = PricesSerializer(required=False)
     meta = ProductVariantMetaSerializer(required=False)
     point_values = PointValuesSerializer(many=True, required=False)
@@ -519,7 +519,6 @@ class ProductInfoSerializer(ModelSerializer):
     product_type_name = serializers.CharField(source="product_type.get_product_type_name", required=False)
     product_variants_count = serializers.CharField(source="get_all_product_variants_count", required=False)
     created_by_name = serializers.CharField(source="created_by.display_name", required=False)
-    enabled_variant_name = serializers.CharField(source="enabled_variant.variant_name", required=False)
     history = HistoricalRecordField(read_only=True)
 
     class Meta:
@@ -535,7 +534,6 @@ class ProductInfoSerializer(ModelSerializer):
             "product_type",
             "product_type_name",
             "product_variants_count",
-            "enabled_variant_name",
             "created_by_name",
             "product_status",
             "created",
@@ -544,7 +542,7 @@ class ProductInfoSerializer(ModelSerializer):
         ]
 
 
-class CreateProductSerializer(ModelSerializer):
+class CreateUpdateProductSerializer(ModelSerializer):
     meta = ProductMetaSerializer(required=False)
 
     def create(self, validated_data):
@@ -648,7 +646,7 @@ class ProductTypeInfoSerializer(ModelSerializer):
         ]
 
 
-class CreateProductTypeSerializer(ModelSerializer):
+class CreateUpdateProductTypeSerializer(ModelSerializer):
     meta = ProductTypeMetaSerializer(required=False)
 
     def create(self, validated_data):

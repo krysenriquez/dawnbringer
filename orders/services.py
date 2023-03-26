@@ -42,66 +42,66 @@ def transform_order_form_data_to_json(request):
     return data
 
 
-def get_account(request):
-    account = get_object_or_none(Account, account_id=request["account"])
+def get_account(account):
+    account = get_object_or_none(Account, account_id=account)
 
     return account
 
 
-def get_or_create_customer(request):
+def get_or_create_customer(customer):
     obj, created = Customer.objects.get_or_create(
-        name=request["customer"]["name"],
-        email_address=request["customer"]["email_address"],
-        contact_number=request["customer"]["contact_number"],
+        name=customer.get("name"),
+        email_address=customer.get("email_address"),
+        contact_number=customer.get("contact_number"),
     )
 
     return obj
 
 
 def process_order_request(request):
-    total_amount = 0
     total_discount = 0
     total_fees = 0
     order_amount = 0
     has_valid_code = False
 
-    branch = get_object_or_404(Branch, branch_id=request["branch"])
+    branch = get_object_or_404(Branch, branch_id=request.get("branch"))
 
     data = {
-        "order_type": request["order_type"],
-        "payment_method": request["payment_method"],
-        "order_notes": request["order_notes"],
-        "order_date": request["order_date"],
-        "fees": request["fees"],
-        "histories": request["histories"],
+        "order_type": request.get("order_type"),
+        "payment_method": request.get("payment_method"),
+        "order_notes": request.get("order_notes"),
+        "order_date": request.get("order_date"),
+        "histories": request.get("histories"),
         "branch": branch.pk,
     }
 
-    if request["order_type"] == OrderType.DELIVERY and request["address"]:
-        data["address"] = request["address"]
+    if request.get("order_type") == OrderType.DELIVERY and request.get("address"):
+        data["address"] = request.get("address")
     else:
         data["address"] = {}
 
-    if request["code"]:
-        promo_code = get_object_or_none(Code, code=request["code"])
-        if promo_code:
-            data["promo_code"] = promo_code.pk
-            has_valid_code = True
+    promo_code = get_object_or_none(Code, code=request.get("code"))
+    if promo_code:
+        data["promo_code"] = promo_code.pk
+        has_valid_code = True
 
     details, order_amount, total_discount = process_order_details(
-        request["details"], order_amount, has_valid_code, total_discount
+        request.get("details"), order_amount, has_valid_code, total_discount
     )
     data["details"] = details
     data["order_amount"] = order_amount
     data["total_discount"] = total_discount
 
-    total_fees = process_fees_details(request["fees"], total_fees, has_valid_code, total_discount)
+    fees, total_fees = process_fees_details(
+        request.get("fees"), total_fees, has_valid_code, total_discount, request.get("order_type")
+    )
+    data["fees"] = fees
     data["total_fees"] = total_fees
 
     data["total_amount"] = (decimal.Decimal(order_amount) + decimal.Decimal(total_fees)) - decimal.Decimal(
         total_discount
     )
-    # print(data)
+
     return data
 
 
@@ -109,21 +109,20 @@ def process_order_details(details, order_amount, has_valid_code, total_discount)
     new_details = []
     for detail in details:
         new_detail = {}
-        variant = get_object_or_none(ProductVariant, variant_id=detail["variant"])
+        variant = get_object_or_none(ProductVariant, variant_id=detail.get("variant", None))
         if variant:
             new_detail["product_variant"] = variant.pk
-            new_detail["quantity"] = detail["quantity"]
+            new_detail["quantity"] = detail.get("quantity", 0)
             new_detail["amount"] = variant.price.base_price
             new_detail["discount"] = 0
-            new_detail["total_amount"] = variant.price.base_price * detail["quantity"]
+            new_detail["total_amount"] = variant.price.base_price * detail.get("quantity", 0)
 
-            order_amount += new_detail["total_amount"]
+            order_amount += new_detail.get("total_amount")
 
             if has_valid_code:
                 new_detail["discount"] = variant.price.discounted_price
-                new_detail["total_amount"] = variant.price.discounted_price * new_detail["quantity"]
-                total_discount += (variant.price.base_price * new_detail["quantity"]) - (
-                    variant.price.discounted_price * new_detail["quantity"]
+                total_discount += (variant.price.base_price * new_detail.get("quantity", 0)) - (
+                    variant.price.discounted_price * new_detail.get("quantity", 0)
                 )
 
         new_details.append(new_detail)
@@ -131,14 +130,22 @@ def process_order_details(details, order_amount, has_valid_code, total_discount)
     return new_details, order_amount, total_discount
 
 
-def process_fees_details(fees, total_fees, has_valid_code, total_discount):
-    for detail in fees:
-        total_fees += decimal.Decimal(detail["amount"])
+def process_fees_details(fees, total_fees, has_valid_code, total_discount, order_type):
+    new_fees = []
+    delivery_fee = 150
+
+    if order_type == OrderType.DELIVERY:
+        new_fee = {"fee_type": "Delivery Fee", "amount": delivery_fee}
+        new_fees.append(new_fee)
 
     if has_valid_code:
-        fees.append({"fee_type": "Discount", "amount": -abs(total_discount)})
+        new_fee = {"fee_type": "Discount", "amount": -abs(total_discount)}
+        new_fees.append(new_fee)
 
-    return total_fees
+    for fee in new_fees:
+        total_fees += decimal.Decimal(fee.get("amount"))
+
+    return new_fees, total_fees
 
 
 def create_order_initial_history():
@@ -183,14 +190,14 @@ def notify_customer_on_order_update_by_email(order):
         shop_order_link = str(get_setting(Settings.SHOP_ORDER_LINK))
 
         email_template = "emails/order.html"
-        email_subject = "Order is " + serialized_order.data.get("current_order_status").title()
+        email_subject = "Order is " + serialized_order.data.get("current_order_status").replace("_", " ").title()
 
         if order.account:
             email_body = render_template(
                 email_template,
                 {
                     "order": serialized_order.data,
-                    "link": "".join((shop_domain, shop_order_link)),
+                    "link": "".join((shop_domain, shop_order_link, serialized_order.data.get("order_id"))),
                     "sub_title": "Thank you for purchasing!",
                     "title": email_subject + "!",
                 },
@@ -201,7 +208,7 @@ def notify_customer_on_order_update_by_email(order):
             email_template,
             {
                 "order": serialized_order.data,
-                "link": shop_domain + shop_order_link,
+                "link": "".join((shop_domain, shop_order_link, serialized_order.data.get("order_id"))),
                 "sub_title": "Thank you for purchasing!",
                 "title": email_subject + "!",
             },

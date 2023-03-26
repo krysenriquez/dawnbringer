@@ -210,7 +210,7 @@ def notify_branch_to_on_supply_update_by_email(supply):
     if serialized_supply:
 
         email_template = "emails/supply.html"
-        email_subject = "Supply is " + serialized_supply.data.get("current_supply_status").title()
+        email_subject = "Supply is " + serialized_supply.data.get("current_supply_status").replace("_", " ").title()
         email_body = render_template(
             email_template,
             {

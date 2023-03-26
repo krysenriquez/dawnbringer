@@ -1,12 +1,13 @@
 import string, random
-import datetime
+import json
 from tzlocal import get_localzone
 from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
 from accounts.enums import AccountStatus, CodeStatus
-from accounts.models import Registration, Code
+from accounts.models import Registration, Code, CashoutMethod, AddressInfo
 from orders.models import Order, Customer
 from core.enums import Settings
+from core.models import CashoutMethods
 from core.services import get_setting
 from users.services import create_new_user
 
@@ -92,6 +93,8 @@ def update_registration_status(registration):
 
 
 def activate_account_login(account, user):
+    user["display_name"] = " ".join((account.first_name, account.last_name))
+    user["user_type_name"] = "Member"
     account.user = create_new_user(user)
     account.account_status = AccountStatus.ACTIVE
     account.save()
@@ -110,3 +113,47 @@ def verify_code_details(request):
 def attach_orders_to_registered_account(account, registration):
     orders = Order.objects.filter(customer=registration.order.customer).update(account=account)
     return orders
+
+
+def create_new_cashout_method(request, account):
+    cashout_method = request.data.get("cashout_method")
+    cashout_method_obj = CashoutMethods.objects.get(id=cashout_method.get("method"))
+
+    data = {
+        "account": account,
+        "account_name": cashout_method.get("account_name"),
+        "account_number": cashout_method.get("account_number"),
+        "method": cashout_method_obj,
+        "other": cashout_method.get("others"),
+    }
+
+    created_cashout_method = CashoutMethod.objects.create(**data)
+
+    return created_cashout_method
+
+
+def transform_account_form_data_to_json(request):
+    data = {}
+    for key, value in request.items():
+        if type(value) != str:
+            data[key] = value
+            continue
+        if "{" in value or "[" in value:
+            try:
+                data[key] = json.loads(value)
+            except ValueError:
+                data[key] = value
+        else:
+            data[key] = value
+
+    if request.get("avatar_info['id']") is not None:
+        data["avatar_info"] = {
+            "id": request["avatar_info['id']"],
+            "avatar": request["avatar_info['avatar']"],
+        }
+
+    return data
+
+
+def undefault_all_address_info(request):
+    return AddressInfo.objects.filter(account__user=request.user).update(is_default=False)

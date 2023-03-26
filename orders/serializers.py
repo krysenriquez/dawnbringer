@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from orders.models import (
@@ -11,18 +12,59 @@ from orders.models import (
 )
 
 # Orders
+class ReferralOrderDetailsSerializer(ModelSerializer):
+    variant_name = serializers.CharField(source="product_variant.variant_name", required=False)
+    variant_sku = serializers.CharField(source="product_variant.sku", required=False)
+
+    def to_representation(self, instance):
+        data = super(ReferralOrderDetailsSerializer, self).to_representation(instance)
+        total_point_values = instance.get_total_point_values()
+        data.update({"point_values": total_point_values})
+        return data
+
+    class Meta:
+        model = OrderDetail
+        fields = [
+            "product_variant",
+            "variant_name",
+            "variant_sku",
+            "quantity",
+        ]
+
+
 class ReferralOrdersListSerializer(ModelSerializer):
     order_number = serializers.CharField(source="get_order_number", required=False)
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
 
-    # def to_representation(self, instance):
-    #     request = self.context["request"]
-    #
-    #     points = instance.get_membership_level_points()
-    #     data = super(ReferralOrdersListSerializer, self).to_representation(instance)
-    #     data.update({"points": points})
+    def to_representation(self, instance):
+        request = self.context.get("request")
+        point_value_membership_name = None
+        point_value_membership_level = None
+        point_value = 0
 
-    #     return data
+        total_point_values = instance.get_order_total_point_values()
+        promo_code_levels = instance.get_promo_code_account_four_levels()
+        for promo_code_level in promo_code_levels:
+            account = promo_code_level.get("account")
+
+            if account.user.pk == request.user.pk:
+                level = promo_code_level.get("level")
+                point_value_level = total_point_values.get(level)
+
+                point_value_membership_name = point_value_level.get("membership_level")
+                point_value_membership_level = point_value_level.get("level")
+                point_value = point_value_level.get("total")
+
+        data = super(ReferralOrdersListSerializer, self).to_representation(instance)
+        data.update(
+            {
+                "point_value_membership_name": point_value_membership_name,
+                "point_value_membership_level": point_value_membership_level,
+                "point_value": point_value,
+            }
+        )
+
+        return data
 
     class Meta:
         model = Order
@@ -178,6 +220,7 @@ class OrderInfoSerializer(ModelSerializer):
             "fees",
             "address",
             "customer",
+            "order_id",
             "current_order_status",
             "current_order_stage",
             "order_number",

@@ -1,7 +1,8 @@
 import uuid
 from django.db import models
-from django.db.models import Sum, Max, F, Prefetch
+from django.db.models import Sum, Max, F, Prefetch, Q
 from django.db.models.functions import Coalesce
+from simple_history.models import HistoricalRecords
 from accounts.enums import AccountStatus, AddressType, CodeStatus, Gender
 from core.enums import ActivityType
 
@@ -62,7 +63,22 @@ class Account(models.Model):
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="created_account",
+        null=True,
+        blank=True,
+    )
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modifiedaccount",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
     deleted = models.DateTimeField(blank=True, null=True)
     is_deleted = models.BooleanField(
         default=False,
@@ -129,10 +145,9 @@ class Account(models.Model):
             .aggregate(total=Coalesce(Sum("activity_amount"), 0, output_field=models.DecimalField()))
             .get("total")
         )
-    
+
     def get_level_from_code(self, code_owner=None, account=None):
-        
-        
+
         pass
 
     def __str__(self):
@@ -148,6 +163,14 @@ class PersonalInfo(models.Model):
     gender = models.CharField(max_length=6, choices=Gender.choices, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_personal_info",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s" % (self.account)
@@ -160,8 +183,15 @@ class ContactInfo(models.Model):
         blank=True,
         null=True,
     )
-    created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_contact_info",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s : %s" % (
@@ -172,14 +202,22 @@ class ContactInfo(models.Model):
 
 class AvatarInfo(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name="avatar_info")
-    file_attachment = models.ImageField(blank=True, upload_to=account_avatar_directory)
+    avatar = models.ImageField(blank=True, upload_to=account_avatar_directory)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_avatar_info",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s : %s" % (
             self.account,
-            self.file_attachment,
+            self.avatar,
         )
 
 
@@ -189,6 +227,14 @@ class Code(models.Model):
     status = models.CharField(max_length=32, choices=CodeStatus.choices, default=CodeStatus.ACTIVE)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_code",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s :  %s - %s" % (
@@ -243,8 +289,19 @@ class AddressInfo(models.Model):
     is_default = models.BooleanField(
         default=False,
     )
+    is_deleted = models.BooleanField(
+        default=False,
+    )
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_address_info",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s : %s" % (
@@ -252,15 +309,36 @@ class AddressInfo(models.Model):
             self.address_type,
         )
 
+    class Meta:
+        ordering = ["-is_default", "-id"]
+        constraints = [
+            models.UniqueConstraint(fields=("account",), condition=Q(is_default=True), name="one_default_per_account")
+        ]
+
 
 class CashoutMethod(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="cashout_methods")
     account_name = models.CharField(max_length=255, null=True, blank=True)
     account_number = models.CharField(max_length=255, null=True, blank=True)
-    method = models.CharField(max_length=255, null=True, blank=True)
+    method = models.ForeignKey(
+        "core.CashoutMethods", on_delete=models.CASCADE, related_name="cashout_methods", null=True, blank=True
+    )
+    other = models.CharField(max_length=255, null=True, blank=True)
+    modified = models.DateTimeField(auto_now=True)
+    modified_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        related_name="modified_cashout_method",
+        null=True,
+        blank=True,
+    )
+    history = HistoricalRecords()
 
     def __str__(self):
         return "%s : %s - %s %s" % (self.account, self.account_name, self.account_number, self.method)
 
-    def get_method_name(self):
-        return "%s - %s" % (self.method, self.account_number)
+    def get_cashout_method(self):
+        return "%s - %s" % (self.method.method_name, self.account_number)
+
+    def get_cashout_method_name(self):
+        return "%s" % (self.method.method_name)

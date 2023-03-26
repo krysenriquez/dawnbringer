@@ -1,6 +1,7 @@
 from rest_framework import status, views, permissions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from logs.services import create_log
 from shop.models import PageContent, PageComponent, SectionComponent
 from shop.serializers import (
     PageContentsListSerializer,
@@ -19,7 +20,6 @@ from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser
 from vanguard.throttle import DevTestingAnonThrottle
 from users.enums import ActionType
 from users.services import create_user_logs
-from logs.services import create_log
 
 
 class PageContentsListViewSet(ModelViewSet):
