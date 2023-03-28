@@ -43,8 +43,8 @@ def transform_order_form_data_to_json(request):
 
 
 def get_account(account):
-    account = get_object_or_none(Account, account_id=account)
-
+    if account:
+        account = get_object_or_none(Account, account_id=account)
     return account
 
 
@@ -237,7 +237,7 @@ def notify_customer_on_registration_by_email(order):
 
     if serialized_order:
         email_template = "emails/registration.html"
-        email_subject = "Congratulations!"
+        email_subject = "Congratulations"
 
         member_domain = str(get_setting(Settings.MEMBER_DOMAIN))
         registration_link = str(get_setting(Settings.REGISTRATION_LINK))

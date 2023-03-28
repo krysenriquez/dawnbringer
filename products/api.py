@@ -231,12 +231,12 @@ class VerifyProductTypeView(views.APIView):
         is_verified = verify_product_type_name(request)
         if is_verified:
             return Response(
-                data={"message": "Product Type Name Available"},
+                data={"detail": "Product Type Name Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "Product Type Name Unavailable"},
+                data={"detail": "Product Type Name Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -248,12 +248,12 @@ class VerifyProductTypeSlugView(views.APIView):
         is_verified = verify_product_type_slug(request)
         if is_verified:
             return Response(
-                data={"message": "Product Type Slug Available"},
+                data={"detail": "Product Type Slug Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "Product Type Slug Unavailable"},
+                data={"detail": "Product Type Slug Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -265,12 +265,12 @@ class VerifyProductView(views.APIView):
         is_verified = verify_product_name(request)
         if is_verified:
             return Response(
-                data={"message": "Product Name Available"},
+                data={"detail": "Product Name Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "Product Name Unavailable"},
+                data={"detail": "Product Name Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -282,12 +282,12 @@ class VerifyProductSlugView(views.APIView):
         is_verified = verify_product_slug(request)
         if is_verified:
             return Response(
-                data={"message": "Product Slug Available"},
+                data={"detail": "Product Slug Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "Product Slug Unavailable"},
+                data={"detail": "Product Slug Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -299,12 +299,12 @@ class VerifyProductVariantSkuView(views.APIView):
         is_verified = verify_product_variant_sku(request)
         if is_verified:
             return Response(
-                data={"message": "SKU Available"},
+                data={"detail": "SKU Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "SKU Unavailable"},
+                data={"detail": "SKU Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -316,12 +316,12 @@ class VerifyProductVariantSlugView(views.APIView):
         is_verified = verify_product_variant_slug(request)
         if is_verified:
             return Response(
-                data={"message": "Product Variant Slug Available"},
+                data={"detail": "Product Variant Slug Available"},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                data={"message": "Product Variant Slug Unavailable"},
+                data={"detail": "Product Variant Slug Unavailable"},
                 status=status.HTTP_409_CONFLICT,
             )
 

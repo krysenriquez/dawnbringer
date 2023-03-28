@@ -1,4 +1,5 @@
 import logging
+import json
 from django.core import serializers
 from django.contrib.contenttypes.models import ContentType
 from users.models import User
@@ -6,6 +7,26 @@ from settings.models import Branch, BranchAssignment
 from users.models import UserLogs, Permission, UserType, Module
 
 logger = logging.getLogger(__name__)
+
+
+def transform_user_form_data_to_json(request):
+    data = {}
+    for key, value in request.items():
+        if type(value) != str:
+            data[key] = value
+            continue
+        if "{" in value or "[" in value:
+            try:
+                data[key] = json.loads(value)
+            except ValueError:
+                data[key] = value
+        else:
+            try:
+                data[key] = json.loads(value)
+            except ValueError:
+                data[key] = value
+
+    return data
 
 
 def process_create_user_request(request):

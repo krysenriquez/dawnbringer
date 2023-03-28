@@ -143,6 +143,7 @@ class UserInfoSerializer(ModelSerializer):
         fields = [
             "branch_assignment",
             "user_id",
+            "avatar",
             "username",
             "email_address",
             "display_name",
@@ -162,8 +163,10 @@ class CreateUpdateUserSerializer(ModelSerializer):
         instance.username = validated_data.get("username", instance.username)
         instance.display_name = validated_data.get("display_name", instance.display_name)
         instance.email_address = validated_data.get("email_address", instance.email_address)
+        instance.avatar = validated_data.get("avatar", instance.avatar)
         instance.user_type = validated_data.get("user_type", instance.user_type)
         instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.modified_by = self.context.get("request").user
         instance.save()
 
         return instance

@@ -6,6 +6,7 @@ from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from logs.services import create_log
 from users.serializers import (
     ModulesSerializer,
     PermissionsSerializer,
@@ -22,6 +23,7 @@ from users.models import User, UserLogs, LogDetails, UserType, Module, Permissio
 from users.services import (
     create_branch_assignment,
     process_create_user_request,
+    transform_user_form_data_to_json,
     update_branch_assignments,
     update_role_permissions,
 )
@@ -115,6 +117,16 @@ class UserInfoViewSet(ModelViewSet):
     def get_queryset(self):
         user_id = self.request.query_params.get("user_id", None)
         return User.objects.exclude(is_active=False).filter(user_id=user_id)
+
+
+class UserProfileViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserInfoSerializer
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return User.objects.exclude(is_active=False).filter(id=self.request.user.pk)
 
 
 class UserLogsViewSet(ModelViewSet):
@@ -271,7 +283,7 @@ class ChangeUsernameAdminView(views.APIView):
             else:
                 return Response(
                     data={"detail": "Retaining Username."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_200_OK,
                 )
 
 
@@ -315,7 +327,7 @@ class ChangeEmailAddressAdminView(views.APIView):
                 else:
                     return Response(
                         data={"detail": "Retaining Email Address."},
-                        status=status.HTTP_400_BAD_REQUEST,
+                        status=status.HTTP_200_OK,
                     )
         except ValidationError:
             return Response(
@@ -339,9 +351,9 @@ class ChangePasswordAdminView(views.APIView):
                 data={"detail": "Invalid Admin Password."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        logged_user.set_password(new_password)
-        logged_user.can_change_password = False
-        logged_user.save()
+        member_user.set_password(new_password)
+        member_user.can_change_password = False
+        member_user.save()
 
         return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
 
@@ -377,7 +389,7 @@ class ChangeUsernameView(views.APIView):
             else:
                 return Response(
                     data={"detail": "Retaining Username."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    status=status.HTTP_200_OK,
                 )
 
 
@@ -418,7 +430,7 @@ class ChangeEmailAddressView(views.APIView):
                 else:
                     return Response(
                         data={"detail": "Retaining Email Address."},
-                        status=status.HTTP_400_BAD_REQUEST,
+                        status=status.HTTP_200_OK,
                     )
         except ValidationError:
             return Response(
@@ -480,4 +492,32 @@ class PasswordValidation(views.APIView):
             return Response(
                 data={"detail": "The password is too similar to the email.", "similar": True},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+
+
+class UpdateUserProfileMemberView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        data = transform_user_form_data_to_json(request.data)
+        serializer = CreateUpdateUserSerializer(
+            self.request.user, data=data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            updated_user = serializer.save()
+            create_log("INFO", "Updated User (Admin)", updated_user)
+            if updated_user:
+                return Response(
+                    data={"detail": "Account updated"},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                data={"detail": "Unable to update Account"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        else:
+            create_log("ERROR", "Error User Update (Admin)", serializer.errors)
+            return Response(
+                data={"detail": "Unable to update Account"},
+                status=status.HTTP_409_CONFLICT,
             )

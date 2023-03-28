@@ -27,6 +27,7 @@ from accounts.services import (
     process_create_account_request,
     update_registration_status,
 )
+from core.models import Activity
 from users.enums import UserType
 from users.models import User
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsMemberUser, IsStaffUser
@@ -152,17 +153,17 @@ class UpdateAccountAdminView(views.APIView):
             create_log("INFO", "Updated Account (Admin)", updated_member)
             if updated_member:
                 return Response(
-                    data={"message": "Profile updated"},
+                    data={"detail": "Profile updated"},
                     status=status.HTTP_200_OK,
                 )
             return Response(
-                data={"message": "Unable to update Profile"},
+                data={"detail": "Unable to update Profile"},
                 status=status.HTTP_409_CONFLICT,
             )
         else:
             create_log("ERROR", "Error Account Update (Admin)", serializer.errors)
             return Response(
-                data={"message": "Unable to update Profile"},
+                data={"detail": "Unable to update Profile"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -179,17 +180,17 @@ class UpdateAccountMemberView(views.APIView):
             create_log("INFO", "Updated Account (Admin)", updated_member)
             if updated_member:
                 return Response(
-                    data={"message": "Profile updated"},
+                    data={"detail": "Profile updated"},
                     status=status.HTTP_200_OK,
                 )
             return Response(
-                data={"message": "Unable to update Profile"},
+                data={"detail": "Unable to update Profile"},
                 status=status.HTTP_409_CONFLICT,
             )
         else:
             create_log("ERROR", "Error Account Update (Admin)", serializer.errors)
             return Response(
-                data={"message": "Unable to update Profile"},
+                data={"detail": "Unable to update Profile"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -208,23 +209,23 @@ class CreateAddressMemberView(views.APIView):
                 create_log("INFO", "Created Address", created_address)
                 if created_address:
                     return Response(
-                        data={"message": "Address created"},
+                        data={"detail": "Address created"},
                         status=status.HTTP_200_OK,
                     )
                 return Response(
-                    data={"message": "Unable to create Address"},
+                    data={"detail": "Unable to create Address"},
                     status=status.HTTP_409_CONFLICT,
                 )
             else:
                 create_log("ERROR", "Error Address Create", serializer.errors)
                 return Response(
-                    data={"message": "Unable to create Address"},
+                    data={"detail": "Unable to create Address"},
                     status=status.HTTP_409_CONFLICT,
                 )
         else:
             create_log("ERROR", "Error Address Create: No Account linked to User", account)
             return Response(
-                data={"message": "Unable to create Address"},
+                data={"detail": "Unable to create Address"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -242,17 +243,17 @@ class UpdateAddressMemberView(views.APIView):
             create_log("INFO", "Updated Address", updated_address)
             if updated_address:
                 return Response(
-                    data={"message": "Address updated"},
+                    data={"detail": "Address updated"},
                     status=status.HTTP_200_OK,
                 )
             return Response(
-                data={"message": "Unable to update Address"},
+                data={"detail": "Unable to update Address"},
                 status=status.HTTP_409_CONFLICT,
             )
         else:
             create_log("ERROR", "Error Address Update", serializer.errors)
             return Response(
-                data={"message": "Unable to update Address"},
+                data={"detail": "Unable to update Address"},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -273,21 +274,21 @@ class UpdateDefaultAddressMemberView(views.APIView):
                 create_log("INFO", "Defaulted Address", defaulted_address)
                 if defaulted_address:
                     return Response(
-                        data={"message": "Address defaulted"},
+                        data={"detail": "Address defaulted"},
                         status=status.HTTP_200_OK,
                     )
                 return Response(
-                    data={"message": "Unable to set default Address"},
+                    data={"detail": "Unable to set default Address"},
                     status=status.HTTP_409_CONFLICT,
                 )
             else:
                 create_log("ERROR", "Error Address Default", serializer.errors)
                 return Response(
-                    data={"message": "Unable to set default Address"},
+                    data={"detail": "Unable to set default Address"},
                     status=status.HTTP_409_CONFLICT,
                 )
         return Response(
-            data={"message": "Unable to set default Address"},
+            data={"detail": "Unable to set default Address"},
             status=status.HTTP_409_CONFLICT,
         )
 
@@ -306,17 +307,17 @@ class DeleteAddressMemberView(views.APIView):
             create_log("INFO", "Deleted Address", deleted_address)
             if deleted_address:
                 return Response(
-                    data={"message": "Address deleted"},
+                    data={"detail": "Address deleted"},
                     status=status.HTTP_200_OK,
                 )
             return Response(
-                data={"message": "Unable to delete Address"},
+                data={"detail": "Unable to delete Address"},
                 status=status.HTTP_409_CONFLICT,
             )
         else:
             create_log("ERROR", "Error Address Delete", serializer.errors)
             return Response(
-                data={"message": "Unable to delete Address"},
+                data={"detail": "Unable to delete Address"},
                 status=status.HTTP_409_CONFLICT,
             )
 

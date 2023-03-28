@@ -20,6 +20,7 @@ class Settings(models.TextChoices):
     M_WALLET_CASHOUT_OVERRIDE = "M_WALLET_CASHOUT_OVERRIDE", _("Member Wallet Cashout Override")
     M_WALLET_MINIMUM_CASHOUT_AMOUNT = "M_WALLET_MINIMUM_CASHOUT_AMOUNT", _("Member Wallet Minimum Cashout Amount")
     CASHOUT_PROCESSING_FEE_PERCENTAGE = "CASHOUT_PROCESSING_FEE_PERCENTAGE", _("Cashout Processing Fee Percentage")
+    RESET_PASSWORD_LINK = "RESET_PASSWORD_LINK", _("Reset Password Link")
 
 
 class WalletType(models.TextChoices):

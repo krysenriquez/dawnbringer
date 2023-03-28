@@ -16,6 +16,10 @@ from simple_history.models import HistoricalRecords
 from users.enums import ActionType
 
 
+def user_avatar_directory(instance, filename):
+    return "users/{0}/avatar/{1}".format(instance.user_id, filename)
+
+
 class UserManager(BaseUserManager):
     def _create_user(self, username, email_address, password, **extra_fields):
         if not email_address and not username:
@@ -112,6 +116,7 @@ class User(AbstractUser):
         unique=True,
     )
     user_type = models.ForeignKey(UserType, on_delete=models.CASCADE, related_name="users", blank=True, null=True)
+    avatar = models.ImageField(blank=True, upload_to=user_avatar_directory)
     is_active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(

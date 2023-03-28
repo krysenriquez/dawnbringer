@@ -9,6 +9,7 @@ from users.api import (
     PermissionsListViewSet,
     UsersListViewSet,
     UserInfoViewSet,
+    UserProfileViewSet,
     UserLogsViewSet,
     CreateUserView,
     UpdateBranchAssignmentsView,
@@ -23,6 +24,7 @@ from users.api import (
     ChangePasswordView,
     ResetPasswordView,
     PasswordValidation,
+    UpdateUserProfileMemberView,
 )
 
 router = DefaultRouter()
@@ -33,6 +35,7 @@ router.register(r"getmodules", ModulesViewSet)
 router.register(r"getpermissions", PermissionsListViewSet)
 router.register(r"getusers", UsersListViewSet)
 router.register(r"getuser", UserInfoViewSet)
+router.register(r"getuserprofile", UserProfileViewSet)
 router.register(r"userlogs", UserLogsViewSet)
 router.register(r"contenttype", ContentTypeViewSet)
 
@@ -48,6 +51,7 @@ urlpatterns = [
     path("changeusernameadmin/", ChangeUsernameAdminView.as_view()),
     path("changeemailaddressadmin/", ChangeEmailAddressAdminView.as_view()),
     path("changepasswordadmin/", ChangePasswordAdminView.as_view()),
+    path("updateuserprofile/", UpdateUserProfileMemberView.as_view()),
     # Member
     path("changeusername/", ChangeUsernameView.as_view()),
     path("changeemailaddress/", ChangeEmailAddressView.as_view()),

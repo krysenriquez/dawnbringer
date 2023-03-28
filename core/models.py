@@ -98,6 +98,7 @@ class Activity(models.Model):
 
     class Meta:
         verbose_name_plural = "Activities"
+        ordering = ["-created", "-id"]
 
     def __str__(self):
         return "%s : %s : %s - %s" % (self.activity_type, self.wallet, self.activity_amount, self.account)

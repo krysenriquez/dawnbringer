@@ -153,7 +153,7 @@ class CreateOrderView(views.APIView):
         transformed_request["histories"] = create_order_initial_history()
         processed_request = process_order_request(transformed_request)
 
-        account = get_account(transformed_request.get("account", None))
+        account = get_account(transformed_request.get("account"))
         if account is not None:
             processed_request["account"] = account.pk
         else:

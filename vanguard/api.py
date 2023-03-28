@@ -1,4 +1,6 @@
+from django.core.validators import validate_email
 from django.forms.models import model_to_dict
+from django.core.exceptions import ValidationError
 from rest_framework import status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,10 +8,12 @@ from users.enums import *
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from accounts.models import Account
+from users.models import User
 from vanguard.serializers import AuthAdminLoginSerializer, AuthLoginSerializer, AuthRefreshSerializer
 from vanguard.permissions import *
-from accounts.models import Account
 from request_logging.decorators import no_logging
+from vanguard.services import notify_customer_on_forgot_password_by_email, verify_forgot_password_link
 
 
 class AuthAdminLoginView(TokenObtainPairView):
@@ -105,3 +109,52 @@ class LogoutView(views.APIView):
         token = RefreshToken(token=refresh_token)
         token.blacklist()
         return Response({"status": "OK, goodbye"})
+
+
+class ForgotPasswordView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        email_address = request.data.get("recovery_email")
+        try:
+            validate_email(email_address)
+            try:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
+                return Response(
+                    data={"message": "Invalid Recovery Email Address"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            else:
+                email_msg = notify_customer_on_forgot_password_by_email(user)
+                return Response(
+                    data={"message": email_msg},
+                    status=status.HTTP_200_OK,
+                )
+        except ValidationError:
+            return Response(
+                data={"message": "Please enter a valid Email Address format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class VerifyForgotPasswordView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        data = request.data.get("data")
+        is_verified, unsigned_obj = verify_forgot_password_link(data)
+        if is_verified:
+            user = User.objects.get(id=unsigned_obj["user"])
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(
+            data={"message": unsigned_obj},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
