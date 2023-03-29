@@ -1,5 +1,8 @@
+import datetime
 import uuid
 from django.db import models
+from django.utils import timezone
+from tzlocal import get_localzone
 from orders.enums import AddressType
 from orders.enums import AddressType, OrderType, PaymentMethods, OrderStatus
 
@@ -126,6 +129,33 @@ class Order(models.Model):
                 }
 
         return data
+
+    def compute_remaining_time(self):
+        local_tz = get_localzone()
+        order_date = self.order_date.astimezone(local_tz)
+        time_diff = order_date - timezone.localtime()
+        return datetime.timedelta(seconds=time_diff.total_seconds())
+
+    def get_remaining_time(self):
+        if self.get_last_order_stage() == 4:
+            return "--:--:--"
+        else:
+            td = self.compute_remaining_time()
+            return "%02d:%02d:%02d" % (
+                td.days * 24 + td.seconds // 3600,
+                (td.seconds // 60) % 60,
+                td.seconds % 60,
+            )
+
+    def get_remaining_time_status(self):
+        if self.get_last_order_stage() != 4:
+            td = self.compute_remaining_time()
+            if td.days > 0:
+                return "success"
+            elif td.days == 0:
+                return "warning"
+            else:
+                return "danger"
 
 
 class OrderDetail(models.Model):

@@ -58,6 +58,9 @@ class WhoAmIView(views.APIView):
             account = Account.objects.get(user=request.user)
             if account.avatar_info.avatar and hasattr(account.avatar_info.avatar, "url"):
                 data["user_avatar"] = request.build_absolute_uri(account.avatar_info.avatar.url)
+        else:
+            if request.user.avatar and hasattr(request.user.avatar, "url"):
+                data["user_avatar"] = request.build_absolute_uri(request.user.avatar.url)
 
         return Response(
             data=data,

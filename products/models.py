@@ -301,26 +301,6 @@ class ProductVariant(models.Model):
 
         return supplies - orders
 
-    # def get_orders_by_branch(self, branch_id=None):
-    #     orders = self.orders.filter(order__branch__branch_id=branch_id).filter(
-    #         order__histories__order_status=OrderStatus.COMPLETED
-    #     )
-
-    #     return orders
-
-    # def get_supplies_by_branch(self, branch_id=None):
-    #     supplies = (
-    #         self.supplies.annotate(latest_supply_status=Max("supply__histories__created"))
-    #         .filter(supply__branch_to__branch_id=branch_id)
-    #         .filter(
-    #             supply__histories__created=F("latest_supply_status"),
-    #             supply__histories__supply_status=SupplyStatus.DELIVERED,
-    #         )
-    #         .annotate(supply_number="supply__id")
-    #     )
-
-    #     return supplies
-
     class Meta:
         ordering = ["-variant_id"]
 

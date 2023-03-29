@@ -1,5 +1,6 @@
 import json
 import decimal
+import uuid
 from django.core.signing import Signer, BadSignature
 from django.shortcuts import get_object_or_404
 from accounts.models import Account, Registration, Code
@@ -11,6 +12,14 @@ from orders.enums import OrderStatus, OrderType
 from orders.serializers import OrderInfoSerializer
 from products.models import ProductVariant
 from settings.models import Branch
+
+
+def is_valid_uuid(val):
+    try:
+        uuid.UUID(str(val))
+        return True
+    except ValueError:
+        return False
 
 
 def get_object_or_none(classmodel, **kwargs):
@@ -43,9 +52,9 @@ def transform_order_form_data_to_json(request):
 
 
 def get_account(account):
-    if account:
+    if is_valid_uuid(account):
         account = get_object_or_none(Account, account_id=account)
-    return account
+        return account
 
 
 def get_or_create_customer(customer):
@@ -154,6 +163,30 @@ def create_order_initial_history():
     return history
 
 
+def check_order_stocks(request):
+    order = get_object_or_404(Order, order_id=request.data["order_id"])
+    data = []
+    has_no_stock = False
+
+    if order:
+        details = order.details.all()
+        for detail in details:
+            variant_stock = detail.product_variant.get_total_quantity_by_branch(branch_id=request.data["branch_id"])
+
+            order_stock = variant_stock - detail.quantity
+            if order_stock > 0:
+                data.append("Stock available on %s. %s stock/s remaining." % (detail.product_variant.sku, order_stock))
+            elif order_stock == 0:
+                data.append("Low stock on %s. %s stock/s remaining." % (detail.product_variant.sku, order_stock))
+            else:
+                data.append(
+                    "Not enough stocks on %s. %s stock/s available." % (detail.product_variant.sku, variant_stock)
+                )
+                has_no_stock = True
+
+        return data, has_no_stock
+
+
 def process_order_history_request(request):
     order = get_object_or_404(Order, order_id=request.data["order_id"])
 
@@ -191,8 +224,14 @@ def notify_customer_on_order_update_by_email(order):
 
         email_template = "emails/order.html"
         email_subject = "Order is " + serialized_order.data.get("current_order_status").replace("_", " ").title()
+        email_address = None
 
         if order.account:
+            email_address = order.account.user.email_address
+        else:
+            email_address = order.customer.email_address
+
+        if email_address:
             email_body = render_template(
                 email_template,
                 {
@@ -202,19 +241,8 @@ def notify_customer_on_order_update_by_email(order):
                     "title": email_subject + "!",
                 },
             )
-            return construct_and_send_email_payload(email_subject, email_body, order.account.user.email_address)
 
-        email_body = render_template(
-            email_template,
-            {
-                "order": serialized_order.data,
-                "link": "".join((shop_domain, shop_order_link, serialized_order.data.get("order_id"))),
-                "sub_title": "Thank you for purchasing!",
-                "title": email_subject + "!",
-            },
-        )
-
-        return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
+            return construct_and_send_email_payload(email_subject, email_body, email_address)
 
     return None
 

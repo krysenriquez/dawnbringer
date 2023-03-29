@@ -18,4 +18,6 @@ urlpatterns = [
     path("refresh/", AuthRefreshView.as_view()),
     path("forgotpassword/", ForgotPasswordView.as_view()),
     path("verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
+    path("forgotpassword/", ForgotPasswordView.as_view()),
+    path("verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
 ]

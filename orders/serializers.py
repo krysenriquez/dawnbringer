@@ -1,6 +1,7 @@
 import json
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from accounts.models import Account
 from orders.models import (
     Customer,
     Order,
@@ -95,15 +96,30 @@ class ProductVariantOrderDetailsSerializer(ModelSerializer):
         ]
 
 
-class OrderCustomersListSerializer(ModelSerializer):
-    order_count = serializers.CharField(source="get_orders_count", required=False)
+class OrderCustomerListSerializer(ModelSerializer):
     customer_number = serializers.CharField(source="get_customer_number", required=False)
 
     class Meta:
         model = Customer
         fields = [
-            "order_count",
             "customer_number",
+            "name",
+            "email_address",
+            "contact_number",
+        ]
+
+
+class OrderAccountsListSerializer(ModelSerializer):
+    account_number = serializers.CharField(source="get_account_number", required=False)
+    name = serializers.CharField(source="get_full_name", required=False)
+    email_address = serializers.CharField(source="user.email_address", required=False)
+    contact_number = serializers.CharField(source="contact_info.contact_number", required=False)
+
+    class Meta:
+        model = Account
+        fields = [
+            "account_id",
+            "account_number",
             "name",
             "email_address",
             "contact_number",
@@ -186,6 +202,7 @@ class OrderFeesSerializer(ModelSerializer):
 class OrdersListSerializer(ModelSerializer):
     order_number = serializers.CharField(source="get_order_number", required=False)
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
+    remaining_prep_time_status = serializers.CharField(source="get_remaining_time_status", required=False)
 
     class Meta:
         model = Order
@@ -195,6 +212,8 @@ class OrdersListSerializer(ModelSerializer):
             "current_order_status",
             "total_amount",
             "order_type",
+            "order_date",
+            "remaining_prep_time_status",
         ]
 
 
@@ -204,12 +223,14 @@ class OrderInfoSerializer(ModelSerializer):
     details = OrderDetailsSerializer(many=True, required=False)
     fees = OrderFeesSerializer(many=True, required=False)
     address = OrderAddressSerializer(required=False)
-    customer = OrderCustomersListSerializer()
+    customer = OrderCustomerListSerializer()
+    account = OrderAccountsListSerializer()
     current_order_status = serializers.CharField(source="get_last_order_status", required=False)
     current_order_stage = serializers.CharField(source="get_last_order_stage", required=False)
     order_number = serializers.CharField(source="get_order_number", required=False)
     code = serializers.CharField(source="promo_code.code", required=False)
     code_account = serializers.CharField(source="promo_code.account.account_id", required=False)
+    remaining_prep_time_status = serializers.CharField(source="get_remaining_time_status", required=False)
 
     class Meta:
         model = Order
@@ -220,12 +241,14 @@ class OrderInfoSerializer(ModelSerializer):
             "fees",
             "address",
             "customer",
+            "account",
             "order_id",
             "current_order_status",
             "current_order_stage",
             "order_number",
             "code",
             "code_account",
+            "remaining_prep_time_status",
             "order_date",
             "total_amount",
             "total_discount",

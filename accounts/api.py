@@ -27,9 +27,6 @@ from accounts.services import (
     process_create_account_request,
     update_registration_status,
 )
-from core.models import Activity
-from users.enums import UserType
-from users.models import User
 from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsMemberUser, IsStaffUser
 
 

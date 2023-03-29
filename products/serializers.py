@@ -1,6 +1,8 @@
 from django.forms.models import model_to_dict
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from core.enums import Settings
+from core.services import get_setting
 from orders.serializers import ProductVariantOrderDetailsSerializer
 from products.models import (
     Product,
@@ -336,13 +338,18 @@ class ProductVariantsListSerializer(ModelSerializer):
     def to_representation(self, instance):
         request = self.context["request"]
         branch_id = request.query_params["branch_id"]
+        low_stock_alert_quantity = int(get_setting(Settings.LOW_STOCK_ALERT_QUANTITY))
         stocks = instance.get_total_quantity_by_branch(branch_id=branch_id)
+        stocks_status = None
+        if stocks > low_stock_alert_quantity:
+            stocks_status = "Available"
+        elif stocks == 0:
+            stocks_status = "No Stock"
+        else:
+            stocks_status = "Low Stock"
+
         data = super(ProductVariantsListSerializer, self).to_representation(instance)
-        data.update(
-            {
-                "stocks": stocks,
-            }
-        )
+        data.update({"stocks": stocks, "stocks_status": stocks_status})
 
         return data
 

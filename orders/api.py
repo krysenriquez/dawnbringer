@@ -3,6 +3,7 @@ from django.db.models import Prefetch, Q, Max, F, Prefetch, Count
 from rest_framework import status, views, permissions
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
+from logs.services import create_log
 from core.services import comp_plan
 from orders.enums import OrderStatus, OrderType
 from orders.models import (
@@ -21,6 +22,7 @@ from orders.serializers import (
 )
 from orders.services import (
     check_for_exclusive_product_variant,
+    check_order_stocks,
     create_order_initial_history,
     get_account,
     get_or_create_customer,
@@ -169,6 +171,7 @@ class CreateOrderView(views.APIView):
                 created_order = serializer.save()
                 email_msg = notify_customer_on_order_update_by_email(created_order)
                 has_failed_upload = process_attachments(created_order, request.data)
+                create_log("INFO", "Created Order", created_order)
                 if has_failed_upload:
                     return Response(
                         data={"detail": "Order created. Failed to upload attachments"},
@@ -179,11 +182,22 @@ class CreateOrderView(views.APIView):
                 else:
                     return Response(data={"detail": "Order created."}, status=status.HTTP_201_CREATED)
             else:
-                print(serializer.errors)
+                create_log("ERROR", "Error Order Create", serializer.errors)
                 return Response(
                     data={"detail": "Unable to create Order."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+
+class VerifyOrderStocksView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        data, has_no_stock = check_order_stocks(request)
+        return Response(
+            data={"detail": data, "has_no_stock": has_no_stock},
+            status=status.HTTP_200_OK,
+        )
 
 
 class CreateOrderHistoryView(views.APIView):

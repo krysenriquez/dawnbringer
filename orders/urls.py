@@ -8,6 +8,7 @@ from orders.api import (
     CustomersListViewSet,
     CustomersInfoViewSet,
     GetOrderStatusView,
+    VerifyOrderStocksView,
     CreateOrderHistoryView,
 )
 from django.urls import path
@@ -25,6 +26,7 @@ router.register(r"getreferralorders", ReferralOrdersListMemberViewSet)
 urlpatterns = [
     # Admin
     path("getorderstatus/", GetOrderStatusView.as_view()),
+    path("verifyorderstocks/", VerifyOrderStocksView.as_view()),
     path("updateorder/", CreateOrderHistoryView.as_view()),
 ]
 
