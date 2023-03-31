@@ -342,7 +342,7 @@ class ProductVariantsListSerializer(ModelSerializer):
         stocks = instance.get_total_quantity_by_branch(branch_id=branch_id)
         stocks_status = None
         if stocks > low_stock_alert_quantity:
-            stocks_status = "Available"
+            stocks_status = "In Stock"
         elif stocks == 0:
             stocks_status = "No Stock"
         else:
