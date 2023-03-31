@@ -34,12 +34,12 @@ from shop.api import (
 from vanguard.api import AuthShopLoginView, WhoAmIShopView
 
 router = DefaultRouter()
-router.register(r"admin/shop/getpagecontents", PageContentsListViewSet)
-router.register(r"admin/shop/getpagecontent", PageContentsInfoViewSet)
-router.register(r"admin/shop/getpagecomponents", PageComponentsListViewSet)
-router.register(r"admin/shop/getpagecomponent", PageComponentsInfoViewSet)
-router.register(r"admin/shop/getsectioncomponents", SectionComponentsListViewSet)
-router.register(r"admin/shop/getsectioncomponent", SectionComponentsInfoViewSet)
+router.register(r"shop/admin/getpagecontents", PageContentsListViewSet)
+router.register(r"shop/admin/getpagecontent", PageContentsInfoViewSet)
+router.register(r"shop/admin/getpagecomponents", PageComponentsListViewSet)
+router.register(r"shop/admin/getpagecomponent", PageComponentsInfoViewSet)
+router.register(r"shop/admin/getsectioncomponents", SectionComponentsListViewSet)
+router.register(r"shop/admin/getsectioncomponent", SectionComponentsInfoViewSet)
 # Front End
 router.register(r"v1/shop/getpagecontents", ShopPageContentsViewSet)
 # Array Object
@@ -58,12 +58,12 @@ router.register(r"v1/shop/getorderguest", ShopOrderInfoGuestViewSet)
 
 urlpatterns = [
     # Admin
-    path("admin/shop/createpagecontent/", CreatePageContentView.as_view()),
-    path("admin/shop/updatepagecontent/", UpdatePageContentView.as_view()),
-    path("admin/shop/createpagecomponent/", CreatePageComponentView.as_view()),
-    path("admin/shop/updatepagecomponent/", UpdatePageComponentView.as_view()),
-    path("admin/shop/createsectioncomponent/", CreateSectionComponentView.as_view()),
-    path("admin/shop/updatesectioncomponent/", UpdateSectionComponentView.as_view()),
+    path("shop/admin/createpagecontent/", CreatePageContentView.as_view()),
+    path("shop/admin/updatepagecontent/", UpdatePageContentView.as_view()),
+    path("shop/admin/createpagecomponent/", CreatePageComponentView.as_view()),
+    path("shop/admin/updatepagecomponent/", UpdatePageComponentView.as_view()),
+    path("shop/admin/createsectioncomponent/", CreateSectionComponentView.as_view()),
+    path("shop/admin/updatesectioncomponent/", UpdateSectionComponentView.as_view()),
     # Front End
     path("v1/shop/createorder/", CreateOrderView.as_view()),
     path("v1/shop/verifycode/", VerifyCodeView.as_view()),
