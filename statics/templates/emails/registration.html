@@ -80,12 +80,16 @@
                                 "
                               >
                                 <p style="margin: 0; margin-bottom: 16px">
-                                  <strong>Hello {{ order.customer.name }},</strong>
+                                  <strong>
+                                    Hello {% if order.account %} {{ order.account.name }} {% else %} {{ order.customer.name }} {% endif %},
+                                  </strong>
                                 </p>
                                 <p style="margin: 0">
-                                  With your purchase of Order Number {{order.order_number}}, you've been invited to be a member of Le Reussi Cakes.
-                                  Register and create an account to access your referral code. Share your referral code to start earning!&nbsp;
+                                  With your purchase of Order Number {{order.order_number}}, {% if order.account %} you're eligible to add another
+                                  member of Le Reussi Cakes. &nbsp;{% else %} you've been invited to be a member of Le Reussi Cakes. &nbsp; {% endif
+                                  %}
                                 </p>
+                                <p>Register and create an account to access your referral code. Share your referral code to start earning!</p>
                               </div>
                             </td>
                           </tr>

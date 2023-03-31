@@ -206,9 +206,37 @@ class UpdateRolePermissionsView(views.APIView):
             )
 
 
-class CheckUsernameView(views.APIView):
-    permission_classes = []
-    throttle_classes = [ThirtyPerMinuteAnonThrottle]
+class UpdateUserProfileMemberView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        data = transform_user_form_data_to_json(request.data)
+        serializer = CreateUpdateUserSerializer(
+            self.request.user, data=data, partial=True, context={"request": request}
+        )
+        if serializer.is_valid():
+            updated_user = serializer.save()
+            create_log("INFO", "Updated User (Admin)", updated_user)
+            if updated_user:
+                return Response(
+                    data={"detail": "Account updated"},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                data={"detail": "Unable to update Account"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        else:
+            create_log("ERROR", "Error User Update (Admin)", serializer.errors)
+            return Response(
+                data={"detail": "Unable to update Account"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+
+# Admin
+class CheckUsernameAdminView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
         username = request.data.get("username")
@@ -223,9 +251,43 @@ class CheckUsernameView(views.APIView):
             )
 
 
-class CheckEmailAddressView(views.APIView):
-    permission_classes = []
-    throttle_classes = [ThirtyPerMinuteAnonThrottle]
+class ChangeUsernameAdminView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        new_username = request.data.get("username")
+        password = request.data.get("confirm_password")
+        logged_user = self.request.user
+        try:
+            user = User.objects.get(username=new_username)
+        except User.DoesNotExist:
+            if not logged_user.check_password(password):
+                return Response(
+                    data={"detail": "Invalid Current Password."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            data = {"username": new_username, "can_change_username": False}
+            serializer = CreateUpdateUserSerializer(logged_user, data=data, partial=True, context={"request": request})
+            if serializer.is_valid():
+                print(serializer)
+                serializer.save()
+                return Response(data={"detail": "Username has been updated"}, status=status.HTTP_200_OK)
+            return Response(data={"detail": "Unable to update username"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            if user != logged_user:
+                return Response(
+                    data={"detail": "Username unavailable."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            else:
+                return Response(
+                    data={"detail": "Retaining Username."},
+                    status=status.HTTP_200_OK,
+                )
+
+
+class CheckEmailAddressAdminView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
         email_address = request.data.get("email_address")
@@ -250,7 +312,89 @@ class CheckEmailAddressView(views.APIView):
             )
 
 
-class ChangeUsernameAdminView(views.APIView):
+class ChangeEmailAddressAdminView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        email_address = request.data.get("email_address")
+        password = request.data.get("confirm_password")
+        logged_user = self.request.user
+        try:
+            validate_email(email_address)
+            try:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
+                if not logged_user.check_password(password):
+                    return Response(
+                        data={"detail": "Invalid Current Password."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                data = {"email_address": email_address, "can_change_email_address": False}
+                serializer = CreateUpdateUserSerializer(
+                    logged_user, data=data, partial=True, context={"request": request}
+                )
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(
+                        data={"detail": "Email Address has been updated"},
+                        status=status.HTTP_200_OK,
+                    )
+                return Response(data={"detail": "Unable to update Email Address"}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                if user != logged_user:
+                    return Response(
+                        data={"detail": "Email Address unavailable."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                else:
+                    return Response(
+                        data={"detail": "Retaining Email Address."},
+                        status=status.HTTP_200_OK,
+                    )
+        except ValidationError:
+            return Response(
+                data={"detail": "Please enter a valid Email Address format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class ChangePasswordAdminView(views.APIView):
+    model = User
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        new_password = request.data.get("new_password")
+        password = request.data.get("current_password")
+        logged_user = self.request.user
+
+        if not logged_user.check_password(password):
+            return Response(
+                data={"detail": "Invalid Current Password."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        logged_user.set_password(new_password)
+        logged_user.can_change_password = False
+        logged_user.save()
+
+        return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordAdminView(views.APIView):
+    model = User
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
+    def post(self, request, *args, **kwargs):
+        new_password = request.data.get("new_password")
+        refresh_token = self.request.data.get("refresh")
+        logged_user = self.request.user
+        logged_user.set_password(new_password)
+        logged_user.save()
+        token = RefreshToken(token=refresh_token)
+        token.blacklist()
+        return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
+
+
+class ChangeMemberUsernameAdminView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
@@ -287,7 +431,7 @@ class ChangeUsernameAdminView(views.APIView):
                 )
 
 
-class ChangeEmailAddressAdminView(views.APIView):
+class ChangeMemberEmailAddressAdminView(views.APIView):
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
     def post(self, request, *args, **kwargs):
@@ -336,7 +480,7 @@ class ChangeEmailAddressAdminView(views.APIView):
             )
 
 
-class ChangePasswordAdminView(views.APIView):
+class ChangeMemberPasswordAdminView(views.APIView):
     model = User
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
@@ -358,8 +502,9 @@ class ChangePasswordAdminView(views.APIView):
         return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
 
 
-class ChangeUsernameView(views.APIView):
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+# Member
+class ChangeUsernameMemberView(views.APIView):
+    permission_classes = [IsMemberUser]
 
     def post(self, request, *args, **kwargs):
         new_username = request.data.get("username")
@@ -393,8 +538,8 @@ class ChangeUsernameView(views.APIView):
                 )
 
 
-class ChangeEmailAddressView(views.APIView):
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+class ChangeEmailAddressMemberView(views.APIView):
+    permission_classes = [IsMemberUser]
 
     def post(self, request, *args, **kwargs):
         email_address = request.data.get("email_address")
@@ -439,7 +584,7 @@ class ChangeEmailAddressView(views.APIView):
             )
 
 
-class ChangePasswordView(views.APIView):
+class ChangePasswordMemberView(views.APIView):
     model = User
     permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
 
@@ -460,9 +605,9 @@ class ChangePasswordView(views.APIView):
         return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
 
 
-class ResetPasswordView(views.APIView):
+class ResetPasswordMemberView(views.APIView):
     model = User
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    permission_classes = [IsMemberUser]
 
     def post(self, request, *args, **kwargs):
         new_password = request.data.get("new_password")
@@ -495,29 +640,47 @@ class PasswordValidation(views.APIView):
             )
 
 
-class UpdateUserProfileMemberView(views.APIView):
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+# Anon
+class CheckUsernameAnonView(views.APIView):
+    permission_classes = []
+    throttle_classes = [ThirtyPerMinuteAnonThrottle]
 
     def post(self, request, *args, **kwargs):
-        data = transform_user_form_data_to_json(request.data)
-        serializer = CreateUpdateUserSerializer(
-            self.request.user, data=data, partial=True, context={"request": request}
-        )
-        if serializer.is_valid():
-            updated_user = serializer.save()
-            create_log("INFO", "Updated User (Admin)", updated_user)
-            if updated_user:
-                return Response(
-                    data={"detail": "Account updated"},
-                    status=status.HTTP_200_OK,
-                )
+        username = request.data.get("username")
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response(data={"detail": "Username available."}, status=status.HTTP_200_OK)
+        else:
+
             return Response(
-                data={"detail": "Unable to update Account"},
+                data={"detail": "Sorry, Username unavailable."},
                 status=status.HTTP_409_CONFLICT,
             )
-        else:
-            create_log("ERROR", "Error User Update (Admin)", serializer.errors)
+
+
+class CheckEmailAddressAnonView(views.APIView):
+    permission_classes = []
+    throttle_classes = [ThirtyPerMinuteAnonThrottle]
+
+    def post(self, request, *args, **kwargs):
+        email_address = request.data.get("email_address")
+        try:
+            validate_email(email_address)
+            try:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
+                return Response(
+                    data={"detail": "Email Address available"},
+                    status=status.HTTP_200_OK,
+                )
+            else:
+                return Response(
+                    data={"detail": "Sorry, Email Address unavailable."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+        except ValidationError:
             return Response(
-                data={"detail": "Unable to update Account"},
-                status=status.HTTP_409_CONFLICT,
+                data={"detail": "Please enter a valid Email Address format."},
+                status=status.HTTP_400_BAD_REQUEST,
             )

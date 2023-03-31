@@ -264,23 +264,30 @@ def notify_customer_on_registration_by_email(order):
     serialized_order = OrderInfoSerializer(order)
 
     if serialized_order:
-        email_template = "emails/registration.html"
-        email_subject = "Congratulations"
-
         member_domain = str(get_setting(Settings.MEMBER_DOMAIN))
         registration_link = str(get_setting(Settings.REGISTRATION_LINK))
 
-        email_body = render_template(
-            email_template,
-            {
-                "order": serialized_order.data,
-                "link": "".join((member_domain, registration_link, str(registration_obj))),
-                "sub_title": "Thank you for purchasing!",
-                "title": email_subject + "!",
-            },
-        )
+        email_template = "emails/registration.html"
+        email_subject = "Congratulations"
+        email_address = None
 
-        return construct_and_send_email_payload(email_subject, email_body, order.customer.email_address)
+        if order.account:
+            email_address = order.account.user.email_address
+        else:
+            email_address = order.customer.email_address
+
+        if email_address:
+            email_body = render_template(
+                email_template,
+                {
+                    "order": serialized_order.data,
+                    "link": "".join((member_domain, registration_link, str(registration_obj))),
+                    "sub_title": "Thank you for purchasing!",
+                    "title": email_subject + "!",
+                },
+            )
+
+            return construct_and_send_email_payload(email_subject, email_body, email_address)
 
 
 def create_registration_object(order):
@@ -289,7 +296,6 @@ def create_registration_object(order):
     signer = Signer()
     data = {
         "registration_id": registration.id,
-        "customer": registration.order.customer.id,
         "order_number": str(registration.order.id).zfill(5),
     }
     signed_obj = signer.sign_object(data)

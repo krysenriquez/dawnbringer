@@ -14,48 +14,61 @@ from users.api import (
     CreateUserView,
     UpdateBranchAssignmentsView,
     UpdateRolePermissionsView,
-    CheckUsernameView,
+    # Admin
+    CheckUsernameAdminView,
     ChangeUsernameAdminView,
+    CheckEmailAddressAdminView,
     ChangeEmailAddressAdminView,
     ChangePasswordAdminView,
-    ChangeUsernameView,
-    CheckEmailAddressView,
-    ChangeEmailAddressView,
-    ChangePasswordView,
-    ResetPasswordView,
-    PasswordValidation,
+    ChangePasswordMemberView,
+    ResetPasswordAdminView,
+    ChangeMemberUsernameAdminView,
+    ChangeMemberEmailAddressAdminView,
+    ChangeMemberPasswordAdminView,
+    # Member
+    CheckUsernameAnonView,
+    ChangeUsernameMemberView,
+    CheckEmailAddressAnonView,
+    ChangeEmailAddressMemberView,
+    ResetPasswordMemberView,
     UpdateUserProfileMemberView,
 )
 
 router = DefaultRouter()
-router.register(r"getusertypesoptions", UserTypesOptionsViewSet)
-router.register(r"getusertypes", UserTypesListViewSet)
-router.register(r"getusertype", UserTypeInfoViewSet)
-router.register(r"getmodules", ModulesViewSet)
-router.register(r"getpermissions", PermissionsListViewSet)
-router.register(r"getusers", UsersListViewSet)
-router.register(r"getuser", UserInfoViewSet)
-router.register(r"getuserprofile", UserProfileViewSet)
-router.register(r"userlogs", UserLogsViewSet)
-router.register(r"contenttype", ContentTypeViewSet)
+router.register(r"admin/getusertypesoptions", UserTypesOptionsViewSet)
+router.register(r"admin/getusertypes", UserTypesListViewSet)
+router.register(r"admin/getusertype", UserTypeInfoViewSet)
+router.register(r"admin/getmodules", ModulesViewSet)
+router.register(r"admin/getpermissions", PermissionsListViewSet)
+router.register(r"admin/getusers", UsersListViewSet)
+router.register(r"admin/getuser", UserInfoViewSet)
+router.register(r"admin/getuserprofile", UserProfileViewSet)
+router.register(r"admin/userlogs", UserLogsViewSet)
+router.register(r"admin/contenttype", ContentTypeViewSet)
 
 urlpatterns = [
-    path("updatebranchassignments/", UpdateBranchAssignmentsView.as_view()),
-    path("updaterolepermissions/", UpdateRolePermissionsView.as_view()),
-    path("checkusername/", CheckUsernameView.as_view()),
-    path("checkemailaddress/", CheckEmailAddressView.as_view()),
-    path("resetpassword/", ResetPasswordView.as_view()),
-    path("checkpassword/", PasswordValidation.as_view()),
     # Admin
-    path("createuser/", CreateUserView.as_view()),
-    path("changeusernameadmin/", ChangeUsernameAdminView.as_view()),
-    path("changeemailaddressadmin/", ChangeEmailAddressAdminView.as_view()),
-    path("changepasswordadmin/", ChangePasswordAdminView.as_view()),
-    path("updateuserprofile/", UpdateUserProfileMemberView.as_view()),
+    path("admin/updatebranchassignments/", UpdateBranchAssignmentsView.as_view()),
+    path("admin/updaterolepermissions/", UpdateRolePermissionsView.as_view()),
+    path("admin/updateuserprofile/", UpdateUserProfileMemberView.as_view()),
+    path("admin/createuser/", CreateUserView.as_view()),
+    path("admin/checkusername/", CheckUsernameAdminView.as_view()),
+    path("admin/changeusername/", ChangeUsernameAdminView.as_view()),
+    path("admin/checkemailaddress/", CheckEmailAddressAdminView.as_view()),
+    path("admin/changeemailaddress/", ChangeEmailAddressAdminView.as_view()),
+    path("admin/changepassword/", ChangePasswordAdminView.as_view()),
+    path("admin/resetpassword/", ResetPasswordAdminView.as_view()),
+    path("admin/changememberusername/", ChangeMemberUsernameAdminView.as_view()),
+    path("admin/changememberemailaddress/", ChangeMemberEmailAddressAdminView.as_view()),
+    path("admin/changememberpassword/", ChangeMemberPasswordAdminView.as_view()),
     # Member
-    path("changeusername/", ChangeUsernameView.as_view()),
-    path("changeemailaddress/", ChangeEmailAddressView.as_view()),
-    path("changepassword/", ChangePasswordView.as_view()),
+    path("member/changeusername/", ChangeUsernameMemberView.as_view()),
+    path("member/changeemailaddress/", ChangeEmailAddressMemberView.as_view()),
+    path("member/changepassword/", ChangePasswordMemberView.as_view()),
+    path("member/resetpassword/", ResetPasswordMemberView.as_view()),
+    # Anon
+    path("member/checkusername/", CheckUsernameAnonView.as_view()),
+    path("member/checkemailaddress/", CheckEmailAddressAnonView.as_view()),
 ]
 
 urlpatterns += router.urls

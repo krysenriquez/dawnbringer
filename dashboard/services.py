@@ -1,158 +1,332 @@
-from django.db.models.functions import TruncMonth, TruncDate, TruncYear, ExtractMonth, ExtractDay, ExtractYear
-from django.db.models import (
-    Q,
-    Max,
-    Min,
-    F,
-    Count,
-    Sum,
-    FilteredRelation,
-)
+import datetime
+from dateutil.relativedelta import relativedelta
+from django.db.models.functions import TruncMonth, TruncDate, TruncYear, Coalesce
+from django.db.models import Q, Max, Min, F, Count, Sum, When, Case, DecimalField, IntegerField
+from accounts.models import Account
 from orders.enums import OrderStatus
-from orders.models import Order, OrderHistory, Customer
+from orders.models import Order, Customer
 
 
-def get_order_count(branch_id, period, param):
+def get_obj_count(obj, period, param, filter):
+    data = []
     match period:
         case "Day":
-            return (
-                Order.objects.annotate(
-                    latest_order_status=FilteredRelation(
-                        "histories", condition=Q(histories__created=Max("histories__created"))
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__date")
+            for x in reversed(range(7)):
+                date_filter = today - relativedelta(days=x)
+                filters[property_filter] = date_filter
+                total = obj.aggregate(
+                    total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                data.append({"period": date_filter, "total": total})
+            return data
+        case "Month":
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__month")
+            for x in reversed(range(6)):
+                date_filter = today - relativedelta(months=x)
+                filters[property_filter] = date_filter.month
+                total = obj.aggregate(
+                    total=Coalesce(
+                        Count(param, filter=Q(**filters)),
+                        0,
+                        output_field=IntegerField(),
                     )
+                ).get("total")
+                data.append(
+                    {"period": "-".join((str(date_filter.year), "{:02d}".format(date_filter.month))), "total": total}
                 )
-                .values("latest_order_status")
-                .annotate(period=TruncDate("created"))
-                .values("period", "latest_order_status")
-                .annotate(total=Count(param))
-                .values("period", "total", "latest_order_status")
-                .order_by("-period")
-            )
-        case "Month":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id)
-                .annotate(period=TruncMonth("created"))
-                .values("period")
-                .annotate(total=Count(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            return data
         case "Year":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id)
-                .annotate(period=TruncYear("created"))
-                .values("period")
-                .annotate(total=Count(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__year")
+            for x in reversed(range(3)):
+                date_filter = today - relativedelta(years=x)
+                filters[property_filter] = date_filter.year
+                total = obj.aggregate(
+                    total=Coalesce(
+                        Count(param, filter=Q(**filters)),
+                        0,
+                        output_field=IntegerField(),
+                    )
+                ).get("total")
+                data.append({"period": str(date_filter.year), "total": total})
+            return data
         case _:
             return []
 
 
-def get_order_total(branch_id, period, param):
+def get_obj_total(obj, period, param, filter):
+    data = []
     match period:
         case "Day":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id)
-                .annotate(latest_supply_status=Max("histories__created"))
-                .filter(
-                    Q(histories__created=F("latest_supply_status")) & Q(histories__order_status=OrderStatus.COMPLETED)
-                )
-                .annotate(period=TruncDate("created"))
-                .values("period")
-                .annotate(total=Sum(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__date")
+            for x in reversed(range(7)):
+                date_filter = today - relativedelta(days=x)
+                filters[property_filter] = date_filter
+                total = obj.aggregate(
+                    total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=DecimalField())
+                ).get("total")
+                data.append({"period": date_filter, "total": total})
+            return data
         case "Month":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id)
-                .annotate(latest_supply_status=Max("histories__created"))
-                .filter(
-                    Q(histories__created=F("latest_supply_status")) & Q(histories__order_status=OrderStatus.COMPLETED)
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__month")
+            for x in reversed(range(6)):
+                date_filter = today - relativedelta(months=x)
+                filters[property_filter] = date_filter.month
+                total = obj.aggregate(
+                    total=Coalesce(
+                        Sum(param, filter=Q(**filters)),
+                        0,
+                        output_field=DecimalField(),
+                    )
+                ).get("total")
+                data.append(
+                    {"period": "-".join((str(date_filter.year), "{:02d}".format(date_filter.month))), "total": total}
                 )
-                .annotate(period=TruncMonth("created"))
-                .values("period")
-                .annotate(total=Sum(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            return data
         case "Year":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id)
-                .annotate(latest_supply_status=Max("histories__created"))
-                .filter(
-                    Q(histories__created=F("latest_supply_status")) & Q(histories__order_status=OrderStatus.COMPLETED)
-                )
-                .annotate(period=TruncYear("created"))
-                .values("period")
-                .annotate(total=Sum(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__year")
+            for x in reversed(range(3)):
+                date_filter = today - relativedelta(years=x)
+                filters[property_filter] = date_filter.year
+                total = obj.aggregate(
+                    total=Coalesce(
+                        Sum(param, filter=Q(**filters)),
+                        0,
+                        output_field=DecimalField(),
+                    )
+                ).get("total")
+                data.append({"period": str(date_filter.year), "total": total})
+            return data
         case _:
             return []
 
 
-def get_code_usage_count(branch_id, period, param):
+def get_obj_count_group_by(object, period, grouping, param, filter):
+    data = []
+    for obj in object:
+        match period:
+            case "Day":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__date")
+                total = 0
+                for x in reversed(range(7)):
+                    date_filter = today - relativedelta(days=x)
+                    filters[property_filter] = date_filter
+                    filters[grouping] = getattr(obj, grouping)
+                    count = object.aggregate(
+                        total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                    ).get("total")
+                    total += count
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case "Month":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__month")
+                total = 0
+                for x in reversed(range(6)):
+                    date_filter = today - relativedelta(months=x)
+                    filters[property_filter] = date_filter.month
+                    filters[grouping] = getattr(obj, grouping)
+                    count = object.aggregate(
+                        total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                    ).get("total")
+                    total += count
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case "Year":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__year")
+                total = 0
+                for x in reversed(range(6)):
+                    date_filter = today - relativedelta(years=x)
+                    filters[property_filter] = date_filter.year
+                    filters[grouping] = getattr(obj, grouping)
+                    count = object.aggregate(
+                        total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                    ).get("total")
+                    total += count
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case _:
+                return []
+    else:
+        return data
+
+
+def get_obj_total_group_by(object, period, grouping, param, filter):
+    data = []
+    for obj in object:
+        match period:
+            case "Day":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__date")
+                total = 0
+                for x in reversed(range(7)):
+                    date_filter = today - relativedelta(days=x)
+                    filters[property_filter] = date_filter
+                    filters[grouping] = getattr(obj, grouping)
+                    sum = object.aggregate(
+                        total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=DecimalField())
+                    ).get("total")
+                    total += sum
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case "Month":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__month")
+                total = 0
+                for x in reversed(range(6)):
+                    date_filter = today - relativedelta(months=x)
+                    filters[property_filter] = date_filter.month
+                    filters[grouping] = getattr(obj, grouping)
+                    sum = object.aggregate(
+                        total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=DecimalField())
+                    ).get("total")
+                    total += sum
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case "Year":
+                today = datetime.date.today()
+                filters = {}
+                property_filter = "%s%s" % (filter, "__year")
+                total = 0
+                for x in reversed(range(6)):
+                    date_filter = today - relativedelta(years=x)
+                    filters[property_filter] = date_filter.year
+                    filters[grouping] = getattr(obj, grouping)
+                    sum = object.aggregate(
+                        total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=DecimalField())
+                    ).get("total")
+                    total += sum
+
+                data.append({"name": getattr(obj, grouping), "total": total})
+            case _:
+                return []
+    else:
+        return data
+
+
+def get_obj_aggregate_count(object, period, param, filter, description):
     match period:
         case "Day":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id, promo_code__isnull=False)
-                .annotate(period=TruncDate("created"))
-                .values("period")
-                .annotate(total=Count(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            period_length = 7
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__date")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(days=x)
+                filters[property_filter] = date_filter
+                count = object.aggregate(
+                    total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += count
+            return {"total": total, "description": "%s for the past %s days" % (description, period_length)}
         case "Month":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id, promo_code__isnull=False)
-                .annotate(period=TruncMonth("created"))
-                .values("period")
-                .annotate(total=Count(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            period_length = 6
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__month")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(months=x)
+                filters[property_filter] = date_filter.month
+                count = object.aggregate(
+                    total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += count
+            return {"total": total, "description": "%s for the past %s months" % (description, period_length)}
         case "Year":
-            return (
-                Order.objects.filter(branch__branch_id=branch_id, promo_code__isnull=False)
-                .annotate(period=TruncYear("created"))
-                .values("period")
-                .annotate(total=Count(param))
-                .values("period", "total")
-                .order_by("-period")
-            )
+            period_length = 6
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__year")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(years=x)
+                filters[property_filter] = date_filter.year
+                count = object.aggregate(
+                    total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += count
+            return {"total": total, "description": "%s for the past %s year" % (description, period_length)}
         case _:
-            return []
+            return {}
 
 
-def get_customers_count(period, param):
+def get_obj_aggregate_total(object, period, param, filter, label, description):
     match period:
         case "Day":
-            return (
-                Customer.objects.annotate(period=TruncDate("created"))
-                .values("period")
-                .annotate(count=Count("id"))
-                .values("period", "count")
-                .order_by("-period")
-            )
+            period_length = 7
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__date")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(days=x)
+                filters[property_filter] = date_filter
+                sum = object.aggregate(
+                    total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += sum
+            return {
+                "total": total,
+                "description": "%s for the past %s days" % (description, period_length),
+                "label": label,
+            }
         case "Month":
-            return (
-                Customer.objects.annotate(period=TruncMonth("created"))
-                .values("period")
-                .annotate(count=Count("id"))
-                .values("period", "count")
-                .order_by("-period")
-            )
+            period_length = 6
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__month")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(months=x)
+                filters[property_filter] = date_filter.month
+                sum = object.aggregate(
+                    total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += sum
+            return {
+                "total": total,
+                "description": "%s for the past %s months" % (description, period_length),
+                "label": label,
+            }
         case "Year":
-            return (
-                Customer.objects.annotate(period=TruncYear("created"))
-                .values("period")
-                .annotate(count=Count("id"))
-                .values("period", "count")
-                .order_by("-period")
-            )
+            period_length = 6
+            today = datetime.date.today()
+            filters = {}
+            property_filter = "%s%s" % (filter, "__year")
+            total = 0
+            for x in reversed(range(period_length)):
+                date_filter = today - relativedelta(years=x)
+                filters[property_filter] = date_filter.year
+                sum = object.aggregate(
+                    total=Coalesce(Sum(param, filter=Q(**filters)), 0, output_field=IntegerField())
+                ).get("total")
+                total += sum
+
+            return {
+                "total": total,
+                "description": "%s for the past %s year" % (description, period_length),
+                "label": label,
+            }
         case _:
-            return []
+            return {}

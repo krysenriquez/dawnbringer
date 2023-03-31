@@ -2,7 +2,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from vanguard.api import (
     AuthRefreshView,
-    WhoAmIView,
+    WhoAmIAdminView,
+    WhoAmIMemberView,
     AuthAdminLoginView,
     AuthLoginView,
     LogoutView,
@@ -11,13 +12,18 @@ from vanguard.api import (
 )
 
 urlpatterns = [
-    path("dblogin/", AuthAdminLoginView.as_view()),
-    path("login/", AuthLoginView.as_view()),
-    path("whoami/", WhoAmIView.as_view()),
-    path("logout/", LogoutView.as_view()),
-    path("refresh/", AuthRefreshView.as_view()),
-    path("forgotpassword/", ForgotPasswordView.as_view()),
-    path("verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
-    path("forgotpassword/", ForgotPasswordView.as_view()),
-    path("verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
+    # Admin
+    path("admin/login/", AuthAdminLoginView.as_view()),
+    path("admin/whoami/", WhoAmIAdminView.as_view()),
+    path("admin/logout/", LogoutView.as_view()),
+    path("admin/refresh/", AuthRefreshView.as_view()),
+    path("admin/forgotpassword/", ForgotPasswordView.as_view()),
+    path("admin/verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
+    # Member
+    path("member/login/", AuthLoginView.as_view()),
+    path("member/whoami/", WhoAmIMemberView.as_view()),
+    path("member/logout/", LogoutView.as_view()),
+    path("member/refresh/", AuthRefreshView.as_view()),
+    path("member/forgotpassword/", ForgotPasswordView.as_view()),
+    path("member/verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
 ]

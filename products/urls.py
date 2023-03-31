@@ -31,36 +31,36 @@ from products.api import (
 from django.urls import path
 
 router = DefaultRouter()
-router.register(r"getproducttypesoptions", ProductTypeOptionsViewSet)
-router.register(r"getproducttypes", ProductTypesListViewSet)
-router.register(r"getproducttype", ProductTypeInfoViewSet)
-router.register(r"getproductsoptions", ProductOptionsViewSet)
-router.register(r"getproducts", ProductsListViewSet)
-router.register(r"getproduct", ProductInfoViewSet)
-router.register(r"getproductvariantsoptions", ProductVariantOptionsViewSet)
-router.register(r"getproductvariants", ProductVariantsListViewSet)
-router.register(r"getproductvariant", ProductVariantInfoViewSet)
-router.register(r"getsupplies", SuppliesListViewSet)
-router.register(r"getsupply", SuppliesInfoViewSet)
+router.register(r"admin/getproducttypesoptions", ProductTypeOptionsViewSet)
+router.register(r"admin/getproducttypes", ProductTypesListViewSet)
+router.register(r"admin/getproducttype", ProductTypeInfoViewSet)
+router.register(r"admin/getproductsoptions", ProductOptionsViewSet)
+router.register(r"admin/getproducts", ProductsListViewSet)
+router.register(r"admin/getproduct", ProductInfoViewSet)
+router.register(r"admin/getproductvariantsoptions", ProductVariantOptionsViewSet)
+router.register(r"admin/getproductvariants", ProductVariantsListViewSet)
+router.register(r"admin/getproductvariant", ProductVariantInfoViewSet)
+router.register(r"admin/getsupplies", SuppliesListViewSet)
+router.register(r"admin/getsupply", SuppliesInfoViewSet)
 # Frontend
 
 urlpatterns = [
-    path("verifyproducttypename/", VerifyProductTypeView.as_view()),
-    path("verifyproducttypeslug/", VerifyProductTypeSlugView.as_view()),
-    path("verifyproductname/", VerifyProductView.as_view()),
-    path("verifyproductslug/", VerifyProductSlugView.as_view()),
-    path("verifyproductvariantsku/", VerifyProductVariantSkuView.as_view()),
-    path("verifyproductvariantslug/", VerifyProductVariantSlugView.as_view()),
-    path("createproducttype/", CreateProductTypeView.as_view()),
-    path("updateproducttype/", UpdateProductTypeView.as_view()),
-    path("createproduct/", CreateProductView.as_view()),
-    path("updateproduct/", UpdateProductView.as_view()),
-    path("createproductvariant/", CreateProductVariantView.as_view()),
-    path("updateproductvariant/", UpdateProductVariantView.as_view()),
-    path("createsupply/", CreateSupplyView.as_view()),
-    path("updatesupply/", UpdateSupplyView.as_view()),
-    path("updatesupplystatus/", CreateSupplyHistoryView.as_view()),
-    path("getsupplystatus/", GetSupplyStatusView.as_view()),
+    path("admin/verifyproducttypename/", VerifyProductTypeView.as_view()),
+    path("admin/verifyproducttypeslug/", VerifyProductTypeSlugView.as_view()),
+    path("admin/verifyproductname/", VerifyProductView.as_view()),
+    path("admin/verifyproductslug/", VerifyProductSlugView.as_view()),
+    path("admin/verifyproductvariantsku/", VerifyProductVariantSkuView.as_view()),
+    path("admin/verifyproductvariantslug/", VerifyProductVariantSlugView.as_view()),
+    path("admin/createproducttype/", CreateProductTypeView.as_view()),
+    path("admin/updateproducttype/", UpdateProductTypeView.as_view()),
+    path("admin/createproduct/", CreateProductView.as_view()),
+    path("admin/updateproduct/", UpdateProductView.as_view()),
+    path("admin/createproductvariant/", CreateProductVariantView.as_view()),
+    path("admin/updateproductvariant/", UpdateProductVariantView.as_view()),
+    path("admin/createsupply/", CreateSupplyView.as_view()),
+    path("admin/updatesupply/", UpdateSupplyView.as_view()),
+    path("admin/updatesupplystatus/", CreateSupplyHistoryView.as_view()),
+    path("admin/getsupplystatus/", GetSupplyStatusView.as_view()),
 ]
 
 urlpatterns += router.urls

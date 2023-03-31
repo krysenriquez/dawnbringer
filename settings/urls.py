@@ -10,11 +10,18 @@ from settings.api import (
 )
 
 router = DefaultRouter()
-router.register(r"getbranchassignments", BranchAssignmentsViewSet)
-router.register(r"getbranches", BranchListViewSet)
-router.register(r"getbranch", BranchInfoViewSet)
-router.register(r"getcompany", CompanyViewSet)
+# Admin
+router.register(r"admin/getbranchassignments", BranchAssignmentsViewSet)
+router.register(r"admin/getbranches", BranchListViewSet)
+router.register(r"admin/getbranch", BranchInfoViewSet)
+router.register(r"admin/getcompany", CompanyViewSet)
+# Member
+router.register(r"member/getcompany", CompanyViewSet)
 
-urlpatterns = [path("createbranch/", CreateBranchView.as_view()), path("updatebranch/", UpdateBranchView.as_view())]
+urlpatterns = [
+    # Admin
+    path("admin/createbranch/", CreateBranchView.as_view()),
+    path("admin/updatebranch/", UpdateBranchView.as_view()),
+]
 
 urlpatterns += router.urls

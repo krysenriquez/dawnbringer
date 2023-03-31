@@ -11,7 +11,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, Bl
 from accounts.models import Account
 from users.models import User
 from vanguard.serializers import AuthAdminLoginSerializer, AuthLoginSerializer, AuthRefreshSerializer
-from vanguard.permissions import *
+from vanguard.permissions import IsDeveloperUser, IsAdminUser, IsStaffUser, IsMemberUser
 from request_logging.decorators import no_logging
 from vanguard.services import notify_customer_on_forgot_password_by_email, verify_forgot_password_link
 
@@ -44,7 +44,9 @@ class AuthRefreshView(TokenRefreshView):
     serializer_class = AuthRefreshSerializer
 
 
-class WhoAmIView(views.APIView):
+class WhoAmIAdminView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         data = {
             "user_id": request.user.user_id,
@@ -54,13 +56,30 @@ class WhoAmIView(views.APIView):
             "user_type": request.user.user_type.user_type_name,
         }
 
-        if request.user.user_type.user_type_name == UserType.MEMBER:
-            account = Account.objects.get(user=request.user)
-            if account.avatar_info.avatar and hasattr(account.avatar_info.avatar, "url"):
-                data["user_avatar"] = request.build_absolute_uri(account.avatar_info.avatar.url)
-        else:
-            if request.user.avatar and hasattr(request.user.avatar, "url"):
-                data["user_avatar"] = request.build_absolute_uri(request.user.avatar.url)
+        if request.user.avatar and hasattr(request.user.avatar, "url"):
+            data["user_avatar"] = request.build_absolute_uri(request.user.avatar.url)
+
+        return Response(
+            data=data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class WhoAmIMemberView(views.APIView):
+    permission_classes = [IsMemberUser]
+
+    def post(self, request, *args, **kwargs):
+        data = {
+            "user_id": request.user.user_id,
+            "display_name": request.user.display_name,
+            "email_address": request.user.email_address,
+            "username": request.user.username,
+            "user_type": request.user.user_type.user_type_name,
+        }
+
+        account = Account.objects.get(user=request.user)
+        if account.avatar_info.avatar and hasattr(account.avatar_info.avatar, "url"):
+            data["user_avatar"] = request.build_absolute_uri(account.avatar_info.avatar.url)
 
         return Response(
             data=data,

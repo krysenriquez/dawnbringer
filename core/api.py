@@ -58,10 +58,20 @@ class SettingInfoViewSet(ModelViewSet):
             return Setting.objects.filter(property=property).order_by("-property")
 
 
-class MembershipLevelsViewSet(ModelViewSet):
+class MembershipLevelsAdminViewSet(ModelViewSet):
     queryset = MembershipLevel.objects.all()
     serializer_class = MembershipLevelsSerializer
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return MembershipLevel.objects.all().order_by("level")
+
+
+class MembershipLevelsMemberViewSet(ModelViewSet):
+    queryset = MembershipLevel.objects.all()
+    serializer_class = MembershipLevelsSerializer
+    permission_classes = [IsMemberUser]
     http_method_names = ["get"]
 
     def get_queryset(self):

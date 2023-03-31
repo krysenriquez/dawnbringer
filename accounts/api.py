@@ -137,34 +137,6 @@ class RegisterAccountView(views.APIView):
         )
 
 
-class UpdateAccountAdminView(views.APIView):
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
-
-    def post(self, request, *args, **kwargs):
-        data = transform_account_form_data_to_json(request.data)
-        account = Account.objects.get(account_id=data["account_id"])
-
-        serializer = CreateUpdateAccountSerializer(account, data=data, partial=True)
-        if serializer.is_valid():
-            updated_member = serializer.save()
-            create_log("INFO", "Updated Account (Admin)", updated_member)
-            if updated_member:
-                return Response(
-                    data={"detail": "Profile updated"},
-                    status=status.HTTP_200_OK,
-                )
-            return Response(
-                data={"detail": "Unable to update Profile"},
-                status=status.HTTP_409_CONFLICT,
-            )
-        else:
-            create_log("ERROR", "Error Account Update (Admin)", serializer.errors)
-            return Response(
-                data={"detail": "Unable to update Profile"},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-
 class UpdateAccountMemberView(views.APIView):
     permission_classes = [IsMemberUser]
 
@@ -333,30 +305,6 @@ class VerifyRegistrationView(views.APIView):
             data={"detail": message},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-
-class VerifyAccountView(views.APIView):
-    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
-
-    def post(self, request, *args, **kwargs):
-        account_id = request.data.get("account_id").lstrip("0")
-        if account_id:
-            try:
-                account = Account.objects.get(id=account_id)
-                return Response(
-                    data={"detail": "Account existing."},
-                    status=status.HTTP_200_OK,
-                )
-            except Account.DoesNotExist:
-                return Response(
-                    data={"detail": "Account does not exist."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-        else:
-            return Response(
-                data={"detail": "Account does not exist."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
 
 # Shop

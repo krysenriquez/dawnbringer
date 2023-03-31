@@ -3,7 +3,8 @@ from django.urls import path
 from core.api import (
     SettingsListViewSet,
     SettingInfoViewSet,
-    MembershipLevelsViewSet,
+    MembershipLevelsAdminViewSet,
+    MembershipLevelsMemberViewSet,
     ActivitiesListMemberViewSet,
     CashoutAdminListViewSet,
     CashoutAdminInfoViewSet,
@@ -28,35 +29,35 @@ from core.api import (
 
 router = DefaultRouter()
 # Admin
-router.register(r"getsettings", SettingsListViewSet)
-router.register(r"getsetting", SettingInfoViewSet)
-router.register(r"getmembershiplevels", MembershipLevelsViewSet)
-router.register(r"getadmincashouts", CashoutAdminListViewSet)
-router.register(r"getadmincashoutinfo", CashoutAdminInfoViewSet)
+router.register(r"admin/getsettings", SettingsListViewSet)
+router.register(r"admin/getsetting", SettingInfoViewSet)
+router.register(r"admin/getmembershiplevels", MembershipLevelsAdminViewSet)
+router.register(r"admin/getcashouts", CashoutAdminListViewSet)
+router.register(r"admin/getcashoutinfo", CashoutAdminInfoViewSet)
 # Member
-router.register(r"getmemberactivities", ActivitiesListMemberViewSet)
-router.register(r"getcashouts", CashoutMemberListViewSet)
-router.register(r"getcashoutinfo", CashoutMemberInfoViewSet)
-router.register(r"getdefaultcashoutmethods", CashoutMethodsListViewSet)
+router.register(r"member/getmembershiplevels", MembershipLevelsMemberViewSet)
+router.register(r"member/getactivities", ActivitiesListMemberViewSet)
+router.register(r"member/getcashouts", CashoutMemberListViewSet)
+router.register(r"member/getcashoutinfo", CashoutMemberInfoViewSet)
+router.register(r"member/getdefaultcashoutmethods", CashoutMethodsListViewSet)
 
 urlpatterns = [
     # Admin
-    path("updatesettings/", UpdateSettingsView.as_view()),
-    path("updatemembershiplevels/", UpdateMembershipLevelsView.as_view()),
-    path("updatecashoutstatus/", UpdateCashoutStatusView.as_view()),
-    path("getadminmembershiplevelpoints/", GetMembershipLevelPointsAdminView.as_view()),
+    path("admin/updatesettings/", UpdateSettingsView.as_view()),
+    path("admin/updatemembershiplevels/", UpdateMembershipLevelsView.as_view()),
+    path("admin/updatecashoutstatus/", UpdateCashoutStatusView.as_view()),
+    path("admin/getmembershiplevelpoints/", GetMembershipLevelPointsAdminView.as_view()),
     # Member
-    path("getmembershiplevelpoints/", GetMembershipLevelPointsMemberView.as_view()),
-    path("getconversionrate/", GetPointConversionRateView.as_view()),
-    path("checkmaxconversionamount/", GetMaxPointConversionAmountView.as_view()),
-    path("convertpoints/", CreateConversionView.as_view()),
-    # Member Cashouts
-    path("getwalletcancashout/", GetWalletCanCashoutView.as_view()),
-    path("getwalletcashoutschedules/", GetWalletScheduleView.as_view()),
-    path("getwalletmaxcashout/", GetMaxWalletAmountView.as_view()),
-    path("getwallettotalcashout/", GetWalletTotalCashoutView.as_view()),
-    path("getwallettotalfee/", GetWalletTotalFeeView.as_view()),
-    path("requestcashout/", RequestCashoutView.as_view()),
+    path("member/getmembershiplevelpoints/", GetMembershipLevelPointsMemberView.as_view()),
+    path("member/getconversionrate/", GetPointConversionRateView.as_view()),
+    path("member/checkmaxconversionamount/", GetMaxPointConversionAmountView.as_view()),
+    path("member/convertpoints/", CreateConversionView.as_view()),
+    path("member/getwalletcancashout/", GetWalletCanCashoutView.as_view()),
+    path("member/getwalletcashoutschedules/", GetWalletScheduleView.as_view()),
+    path("member/getwalletmaxcashout/", GetMaxWalletAmountView.as_view()),
+    path("member/getwallettotalcashout/", GetWalletTotalCashoutView.as_view()),
+    path("member/getwallettotalfee/", GetWalletTotalFeeView.as_view()),
+    path("member/requestcashout/", RequestCashoutView.as_view()),
 ]
 
 

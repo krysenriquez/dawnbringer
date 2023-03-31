@@ -15,19 +15,19 @@ from django.urls import path
 
 router = DefaultRouter()
 # Admin
-router.register(r"getadminorders", OrdersListAdminViewSet)
-router.register(r"getadminorder", OrderInfoAdminViewSet)
-router.register(r"getcustomers", CustomersListViewSet)
-router.register(r"getcustomer", CustomersInfoViewSet)
+router.register(r"admin/getorders", OrdersListAdminViewSet)
+router.register(r"admin/getorder", OrderInfoAdminViewSet)
+router.register(r"admin/getcustomers", CustomersListViewSet)
+router.register(r"admin/getcustomer", CustomersInfoViewSet)
 # Members
-router.register(r"getorders", OrdersListMemberViewSet)
-router.register(r"getorder", OrderInfoMemberViewSet)
-router.register(r"getreferralorders", ReferralOrdersListMemberViewSet)
+router.register(r"member/getorders", OrdersListMemberViewSet)
+router.register(r"member/getorder", OrderInfoMemberViewSet)
+router.register(r"member/getreferralorders", ReferralOrdersListMemberViewSet)
 urlpatterns = [
     # Admin
-    path("getorderstatus/", GetOrderStatusView.as_view()),
-    path("verifyorderstocks/", VerifyOrderStocksView.as_view()),
-    path("updateorder/", CreateOrderHistoryView.as_view()),
+    path("admin/getorderstatus/", GetOrderStatusView.as_view()),
+    path("admin/verifyorderstocks/", VerifyOrderStocksView.as_view()),
+    path("admin/updateorder/", CreateOrderHistoryView.as_view()),
 ]
 
 urlpatterns += router.urls
