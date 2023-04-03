@@ -11,12 +11,12 @@ class IsDeveloperUser(BasePermission):
 
 class IsAdminUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        return bool(request.user and request.user.user_type.user_type_name == UserType.ADMIN)
+        return bool(request.user and request.user.user_type.user_type_name == UserType.ADMINISTRATOR)
 
 
 class IsStaffUser(BasePermission):
     def has_permission(self, request: Type[HttpRequest], view):
-        return bool(request.user and request.user.user_type.user_type_name == UserType.STAFF)
+        return bool(request.user and (request.user.user_type.user_type_name == UserType.STAFF or request.user.user_type.user_type_name == UserType.AUDITOR))
 
 
 class IsMemberUser(BasePermission):

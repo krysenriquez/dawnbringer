@@ -4,8 +4,8 @@ from django.utils.translation import gettext_lazy as _
 
 class UserType(models.TextChoices):
     DEVELOPER = "Developer", _("Developer")
-    ADMIN = "Admin", _("Admin")
-    AUDITOR = "Auditor", _("Admin")
+    ADMINISTRATOR = "Administrator", _("Administrator")
+    AUDITOR = "Auditor", _("Auditor")
     STAFF = "Staff", _("Staff")
     MEMBER = "Member", _("Member")
 
