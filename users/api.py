@@ -10,6 +10,7 @@ from logs.services import create_log
 from users.serializers import (
     ModulesSerializer,
     PermissionsSerializer,
+    UserPermissionsSerializer,
     UserTypeInfoSerializer,
     UserTypesListSerializer,
     UserTypesOptionsSerializer,
@@ -501,7 +502,17 @@ class ChangeMemberPasswordAdminView(views.APIView):
 
         return Response(data={"detail": "Password Updated."}, status=status.HTTP_200_OK)
 
+class RetrieveRolePermissionsView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
 
+    def post(self, request, *args, **kwargs):
+        role_permission = Permission.objects.filter(user_type=request.user.user_type)
+        serializer = UserPermissionsSerializer(role_permission, many=True)
+        print(serializer.data)
+        return Response(
+            data={"permissions": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 # Member
 class ChangeUsernameMemberView(views.APIView):
     permission_classes = [IsMemberUser]

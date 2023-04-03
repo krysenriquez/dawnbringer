@@ -25,6 +25,7 @@ from users.api import (
     ChangeMemberUsernameAdminView,
     ChangeMemberEmailAddressAdminView,
     ChangeMemberPasswordAdminView,
+    RetrieveRolePermissionsView,
     # Member
     CheckUsernameAnonView,
     ChangeUsernameMemberView,
@@ -61,6 +62,7 @@ urlpatterns = [
     path("admin/changememberusername/", ChangeMemberUsernameAdminView.as_view()),
     path("admin/changememberemailaddress/", ChangeMemberEmailAddressAdminView.as_view()),
     path("admin/changememberpassword/", ChangeMemberPasswordAdminView.as_view()),
+    path("admin/getuserpermissions/", RetrieveRolePermissionsView.as_view()),
     # Member
     path("member/changeusername/", ChangeUsernameMemberView.as_view()),
     path("member/changeemailaddress/", ChangeEmailAddressMemberView.as_view()),

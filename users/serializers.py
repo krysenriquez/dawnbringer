@@ -189,6 +189,19 @@ class PermissionsSerializer(ModelSerializer):
         model = Permission
         fields = "__all__"
 
+class UserPermissionsSerializer(ModelSerializer):
+    module_name = serializers.CharField(source="module.module_name", required=False)
+
+    class Meta:
+        model = Permission
+        fields = [
+            "module_name",
+            "can_create",
+            "can_retrieve",
+            "can_delete",
+            "can_update",
+        ]
+
 
 class UserTypesOptionsSerializer(ModelSerializer):
     class Meta:
