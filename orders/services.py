@@ -133,10 +133,9 @@ def process_order_details(details, order_amount, has_valid_code, total_discount)
                 total_discount += (variant.price.base_price * new_detail.get("quantity", 0)) - (
                     variant.price.discounted_price * new_detail.get("quantity", 0)
                 )
-
         new_details.append(new_detail)
-
-    return new_details, order_amount, total_discount
+    else:
+        return new_details, order_amount, total_discount
 
 
 def process_fees_details(fees, total_fees, has_valid_code, total_discount, order_type):

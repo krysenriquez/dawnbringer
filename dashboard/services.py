@@ -266,7 +266,7 @@ def get_obj_aggregate_count(object, period, param, filter, description):
                     total=Coalesce(Count(param, filter=Q(**filters)), 0, output_field=IntegerField())
                 ).get("total")
                 total += count
-            return {"total": total, "description": "%s for the past %s year" % (description, period_length)}
+            return {"total": total, "description": "%s for the past %s years" % (description, period_length)}
         case _:
             return {}
 
@@ -325,7 +325,7 @@ def get_obj_aggregate_total(object, period, param, filter, label, description):
 
             return {
                 "total": total,
-                "description": "%s for the past %s year" % (description, period_length),
+                "description": "%s for the past %s years" % (description, period_length),
                 "label": label,
             }
         case _:
