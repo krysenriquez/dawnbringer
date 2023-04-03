@@ -16,14 +16,17 @@ def build_forgot_password_signed_object(user):
     return signed_obj
 
 
-def notify_customer_on_forgot_password_by_email(user):
+def notify_customer_on_forgot_password_by_email(user, is_member):
     signed_obj = build_forgot_password_signed_object(user)
 
     if signed_obj:
         email_template = "emails/forgot-password.html"
         email_subject = "Forgot Password"
 
-        member_domain = str(get_setting(Settings.MEMBER_DOMAIN))
+        if is_member:
+            member_domain = str(get_setting(Settings.MEMBER_DOMAIN))
+        else:
+            member_domain = str(get_setting(Settings.ADMIN_DOMAIN))
         reset_password_link = str(get_setting(Settings.RESET_PASSWORD_LINK))
 
         email_body = render_template(

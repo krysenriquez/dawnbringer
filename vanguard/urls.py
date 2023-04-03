@@ -7,7 +7,8 @@ from vanguard.api import (
     AuthAdminLoginView,
     AuthLoginView,
     LogoutView,
-    ForgotPasswordView,
+    ForgotPasswordAdminView,
+    ForgotPasswordMemberView,
     VerifyForgotPasswordView,
 )
 
@@ -17,13 +18,13 @@ urlpatterns = [
     path("admin/whoami/", WhoAmIAdminView.as_view()),
     path("admin/logout/", LogoutView.as_view()),
     path("admin/refresh/", AuthRefreshView.as_view()),
-    path("admin/forgotpassword/", ForgotPasswordView.as_view()),
+    path("admin/forgotpassword/", ForgotPasswordAdminView.as_view()),
     path("admin/verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
     # Member
     path("member/login/", AuthLoginView.as_view()),
     path("member/whoami/", WhoAmIMemberView.as_view()),
     path("member/logout/", LogoutView.as_view()),
     path("member/refresh/", AuthRefreshView.as_view()),
-    path("member/forgotpassword/", ForgotPasswordView.as_view()),
+    path("member/forgotpassword/", ForgotPasswordAdminView.as_view()),
     path("member/verifyforgotpassword/", VerifyForgotPasswordView.as_view()),
 ]

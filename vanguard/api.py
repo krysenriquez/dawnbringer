@@ -133,7 +133,7 @@ class LogoutView(views.APIView):
         return Response({"status": "OK, goodbye"})
 
 
-class ForgotPasswordView(views.APIView):
+class ForgotPasswordAdminView(views.APIView):
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
@@ -148,7 +148,33 @@ class ForgotPasswordView(views.APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
             else:
-                email_msg = notify_customer_on_forgot_password_by_email(user)
+                email_msg = notify_customer_on_forgot_password_by_email(user,False)
+                return Response(
+                    data={"message": email_msg},
+                    status=status.HTTP_200_OK,
+                )
+        except ValidationError:
+            return Response(
+                data={"message": "Please enter a valid Email Address format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+class ForgotPasswordMemberView(views.APIView):
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        email_address = request.data.get("recovery_email")
+        try:
+            validate_email(email_address)
+            try:
+                user = User.objects.get(email_address=email_address)
+            except User.DoesNotExist:
+                return Response(
+                    data={"message": "Invalid Recovery Email Address"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            else:
+                email_msg = notify_customer_on_forgot_password_by_email(user, True)
                 return Response(
                     data={"message": email_msg},
                     status=status.HTTP_200_OK,

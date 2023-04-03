@@ -7,6 +7,7 @@ from accounts.api import (
     AccountCashoutMethodsMemberViewSet,
     AccountMemberInfoViewSet,
     AccountProfileInfoViewSet,
+    UpdateCodeStatusView,
     RegisterAccountView,
     VerifyRegistrationView,
     UpdateAccountMemberView,
@@ -28,6 +29,7 @@ router.register(r"member/getprofile", AccountProfileInfoViewSet)
 router.register(r"member/getaddress", AddressMemberInfoViewSet)
 router.register(r"member/getaccountcashoutmethods", AccountCashoutMethodsMemberViewSet)
 urlpatterns = [
+    path("admin/updatecodestatus/", UpdateCodeStatusView.as_view()),
     # Members
     path("member/register/", RegisterAccountView.as_view()),
     path("member/verifyregistration/", VerifyRegistrationView.as_view()),

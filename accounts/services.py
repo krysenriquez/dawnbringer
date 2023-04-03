@@ -87,6 +87,11 @@ def create_account_code():
     return account_code
 
 
+def update_code_status(request):
+    code = get_object_or_404(Code, code=request.data["code"])
+    is_updated = code.activate_deactivate()
+    return is_updated
+
 def update_registration_status(registration):
     registration.registration_status = AccountStatus.CLOSED
     registration.save()

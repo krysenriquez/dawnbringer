@@ -22,6 +22,7 @@ from accounts.services import (
     get_registration_link_object,
     transform_account_form_data_to_json,
     undefault_all_address_info,
+    update_code_status,
     verify_code_details,
     verify_registration_link,
     process_create_account_request,
@@ -305,6 +306,22 @@ class VerifyRegistrationView(views.APIView):
             data={"detail": message},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+class UpdateCodeStatusView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser | IsMemberUser]
+
+    def post(self, request, *args, **kwargs):
+        is_updated = update_code_status(request)
+        if is_updated:
+            return Response(
+                data={"message": "Code updated"},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            return Response(
+                data={"message": "Unable to disable Code"},
+                status=status.HTTP_409_CONFLICT,
+            )
 
 
 # Shop

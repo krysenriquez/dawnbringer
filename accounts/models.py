@@ -243,6 +243,19 @@ class Code(models.Model):
             self.status,
         )
 
+    def activate_deactivate(self):
+        if self.status == CodeStatus.ACTIVE:
+            self.status = CodeStatus.DEACTIVATED
+            self.save()
+            return True
+
+        if self.status == CodeStatus.DEACTIVATED:
+            self.status = CodeStatus.ACTIVE
+            self.save()
+            return True
+
+        return False
+
 
 class AddressInfo(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="address_info")
