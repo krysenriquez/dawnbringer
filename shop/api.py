@@ -1,4 +1,5 @@
 from rest_framework import status, views, permissions
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from logs.services import create_log
@@ -86,6 +87,8 @@ class SectionComponentsInfoViewSet(ModelViewSet):
 
 
 class CreatePageContentView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         request.data["created_by"] = request.user.pk
         request.data["modified_by"] = request.user.pk
@@ -112,6 +115,8 @@ class CreatePageContentView(views.APIView):
 
 
 class UpdatePageContentView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         page_content = PageContent.objects.get(page_content_id=request.data["page_content_id"])
         serializer = PageContentSerializer(page_content, data=request.data, partial=True, context={"request": request})
@@ -137,6 +142,8 @@ class UpdatePageContentView(views.APIView):
 
 
 class CreatePageComponentView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         request.data["created_by"] = request.user.pk
         request.data["modified_by"] = request.user.pk
@@ -163,6 +170,8 @@ class CreatePageComponentView(views.APIView):
 
 
 class UpdatePageComponentView(views.APIView):
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         page_component = PageComponent.objects.get(page_component_id=request.data["page_component_id"])
         serializer = PageComponentSerializer(
@@ -190,15 +199,16 @@ class UpdatePageComponentView(views.APIView):
 
 
 class CreateSectionComponentView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
         processed_request["created_by"] = request.user.pk
         processed_request["modified_by"] = request.user.pk
-        create_log("DEBUG", "Transformed Section Component Create Request: ", processed_request)
         serializer = SectionComponentSerializer(data=processed_request)
         if serializer.is_valid():
             created_section_component = serializer.save()
-            create_log("INFO", "Created Section Component", created_section_component)
             create_user_logs(
                 user=request.user,
                 action_type=ActionType.CREATE,
@@ -210,7 +220,6 @@ class CreateSectionComponentView(views.APIView):
             )
             return Response(data={"detail": "Section Component created."}, status=status.HTTP_201_CREATED)
         else:
-            create_log("ERROR", "Error Section Component Create", serializer.errors)
             return Response(
                 data={"detail": "Unable to create Section Component."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -218,16 +227,17 @@ class CreateSectionComponentView(views.APIView):
 
 
 class UpdateSectionComponentView(views.APIView):
+    parser_classes = (MultiPartParser,)
+    permission_classes = [IsDeveloperUser | IsAdminUser | IsStaffUser]
+
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
-        create_log("DEBUG", "Transformed Section Component Update Request: ", processed_request)
         section_component = SectionComponent.objects.get(section_component_id=processed_request["section_component_id"])
         serializer = SectionComponentSerializer(
             section_component, data=processed_request, partial=True, context={"request": request}
         )
         if serializer.is_valid():
             updated_section_component = serializer.save()
-            create_log("INFO", "Updated Section Component: ", updated_section_component)
             create_user_logs(
                 user=request.user,
                 action_type=ActionType.UPDATE,
@@ -239,7 +249,6 @@ class UpdateSectionComponentView(views.APIView):
             )
             return Response(data={"detail": "Section Component updated."}, status=status.HTTP_200_OK)
         else:
-            create_log("ERROR", "Error Section Component Update: ", serializer.errors)
             return Response(
                 data={"detail": "Unable to update Section Component."},
                 status=status.HTTP_400_BAD_REQUEST,
