@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-gm=#!p)=mfvtjelrp-gjvjxnqo06#tek-5@f!_ei96qw8@g1^_"
 
 DEBUG = True
-LIVE = True
+LIVE = False
 
 if DEBUG and not LIVE:
     ALLOWED_HOSTS = ["*"]
@@ -22,7 +22,8 @@ if LIVE:
         "admin.lereussicakes.com",
         "dawnbringer.lereussicakes.com",
         "lereussicakes.com",
-        "https://139.59.244.242",
+        "https://206.189.39.204",
+        "206.189.39.204",
     ]
 
 CORS_ORIGIN_ALLOW_ALL = False
@@ -34,14 +35,16 @@ if LIVE:
         "https://admin.lereussicakes.com",
         "https://dawnbringer.lereussicakes.com",
         "https://lereussicakes.com",
-        "https://139.59.244.242",
+        "https://206.189.39.204",
+        "206.189.39.204",
     ]
     CSRF_TRUSTED_ORIGINS = [
         "https://member.lereussicakes.com",
         "https://admin.lereussicakes.com",
         "https://dawnbringer.lereussicakes.com",
         "https://lereussicakes.com",
-        "https://139.59.244.242",
+        "https://206.189.39.204",
+        "206.189.39.204",
     ]
 else:
     CORS_ALLOWED_ORIGINS = [

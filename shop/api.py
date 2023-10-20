@@ -194,6 +194,7 @@ class CreateSectionComponentView(views.APIView):
         processed_request = transform_form_data_to_json(request.data)
         processed_request["created_by"] = request.user.pk
         processed_request["modified_by"] = request.user.pk
+        create_log("DEBUG", "Transformed Section Component Create Request: ", processed_request)
         serializer = SectionComponentSerializer(data=processed_request)
         if serializer.is_valid():
             created_section_component = serializer.save()
@@ -219,13 +220,14 @@ class CreateSectionComponentView(views.APIView):
 class UpdateSectionComponentView(views.APIView):
     def post(self, request, *args, **kwargs):
         processed_request = transform_form_data_to_json(request.data)
+        create_log("DEBUG", "Transformed Section Component Update Request: ", processed_request)
         section_component = SectionComponent.objects.get(section_component_id=processed_request["section_component_id"])
         serializer = SectionComponentSerializer(
-            section_component, data=request.data, partial=True, context={"request": request}
+            section_component, data=processed_request, partial=True, context={"request": request}
         )
         if serializer.is_valid():
             updated_section_component = serializer.save()
-            create_log("INFO", "Updated Section Component", updated_section_component)
+            create_log("INFO", "Updated Section Component: ", updated_section_component)
             create_user_logs(
                 user=request.user,
                 action_type=ActionType.UPDATE,
@@ -237,7 +239,7 @@ class UpdateSectionComponentView(views.APIView):
             )
             return Response(data={"detail": "Section Component updated."}, status=status.HTTP_200_OK)
         else:
-            create_log("ERROR", "Error Section Component Update", serializer.errors)
+            create_log("ERROR", "Error Section Component Update: ", serializer.errors)
             return Response(
                 data={"detail": "Unable to update Section Component."},
                 status=status.HTTP_400_BAD_REQUEST,
