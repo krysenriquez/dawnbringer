@@ -126,7 +126,7 @@ class Account(models.Model):
             )
         if self.referrer:
             level = level + 1
-            if level >= 4:
+            if level > 4:
                 return referrers
 
             referrers.append(

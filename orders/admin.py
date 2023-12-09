@@ -9,7 +9,22 @@ from orders.models import (
     OrderHistory,
 )
 
+class OrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "customer",
+        "account",
+        "total_amount",
+        "total_discount",
+        "total_fees",
+        "order_amount"
+    )
+    list_filter = ("account","customer")
+    search_fields = ("account",)
+    ordering = ("-created",)
+    filter_horizontal = ()
 
+    class Meta:
+        model = Order
 class OrderDetailAdmin(admin.ModelAdmin):
     list_display = (
         "product_variant",
@@ -20,7 +35,7 @@ class OrderDetailAdmin(admin.ModelAdmin):
     )
     list_filter = ("product_variant",)
     search_fields = ("product_variant",)
-    ordering = ("product_variant",)
+    ordering = ("-created",)
     filter_horizontal = ()
 
     class Meta:
@@ -28,7 +43,7 @@ class OrderDetailAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Customer)
-admin.site.register(Order)
+admin.site.register(Order, OrderAdmin)
 admin.site.register(OrderDetail, OrderDetailAdmin)
 admin.site.register(OrderFee)
 admin.site.register(OrderAddress)

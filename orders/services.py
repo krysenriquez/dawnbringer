@@ -107,10 +107,8 @@ def process_order_request(request):
     data["fees"] = fees
     data["total_fees"] = total_fees
 
-    data["total_amount"] = (decimal.Decimal(order_amount) + decimal.Decimal(total_fees)) - decimal.Decimal(
-        total_discount
-    )
-
+    # Total Discount need not be subtracted to total_amount as we included total_discount as an inversed fee
+    data["total_amount"] = (decimal.Decimal(order_amount) + decimal.Decimal(total_fees))
     return data
 
 
